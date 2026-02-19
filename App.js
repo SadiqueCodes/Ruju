@@ -5,12 +5,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { AppStateProvider, useAppState } from './src/state/AppState';
 import { COLORS } from './src/theme';
 import { SurahListScreen } from './src/screens/SurahListScreen';
 import { ReaderScreen } from './src/screens/ReaderScreen';
 import { BookmarksScreen } from './src/screens/BookmarksScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { MyProfileScreen } from './src/screens/MyProfileScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { NameSetupScreen } from './src/screens/NameSetupScreen';
@@ -49,11 +51,29 @@ function HomeStack() {
   );
 }
 
-function tabIcon(label, focused) {
+function SettingsStack() {
   return (
-    <Text style={{ color: focused ? COLORS.gold : COLORS.muted, fontSize: 11, fontWeight: '700' }}>
-      {label}
-    </Text>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: COLORS.bg },
+        headerTintColor: COLORS.text,
+        contentStyle: { backgroundColor: COLORS.bg },
+      }}
+    >
+      <Stack.Screen name="SettingsHome" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="MyProfile" component={MyProfileScreen} options={{ title: 'My Profile' }} />
+    </Stack.Navigator>
+  );
+}
+
+function tabIcon(name, label, focused) {
+  return (
+    <>
+      <Ionicons name={name} size={18} color={focused ? COLORS.gold : COLORS.muted} />
+      <Text style={{ color: focused ? COLORS.gold : COLORS.muted, fontSize: 10, fontWeight: '700', marginTop: 2 }}>
+        {label}
+      </Text>
+    </>
   );
 }
 
@@ -87,22 +107,22 @@ function AppShell() {
         <Tab.Screen
           name="Home"
           component={HomeStack}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('HOME', focused), tabBarLabel: () => null }}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('home-outline', 'HOME', focused), tabBarLabel: () => null }}
         />
         <Tab.Screen
           name="Feed"
           component={FeedScreen}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('FEED', focused), tabBarLabel: () => null }}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('newspaper-outline', 'FEED', focused), tabBarLabel: () => null }}
         />
         <Tab.Screen
           name="Bookmarks"
           component={BookmarksScreen}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('SAVE', focused), tabBarLabel: () => null }}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('bookmark-outline', 'SAVE', focused), tabBarLabel: () => null }}
         />
         <Tab.Screen
           name="Settings"
-          component={SettingsScreen}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('SET', focused), tabBarLabel: () => null }}
+          component={SettingsStack}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('settings-outline', 'SET', focused), tabBarLabel: () => null }}
         />
       </Tab.Navigator>
     </NavigationContainer>

@@ -42,9 +42,13 @@ Notes:
 create table if not exists public.feed_posts (
   id uuid primary key default gen_random_uuid(),
   author_name text not null,
+  author_device_id text,
   content text not null check (char_length(content) <= 300),
   created_at timestamptz not null default now()
 );
+
+alter table public.feed_posts
+  add column if not exists author_device_id text;
 
 create table if not exists public.feed_likes (
   post_id uuid not null references public.feed_posts(id) on delete cascade,
@@ -61,19 +65,55 @@ create table if not exists public.feed_comments (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.feed_comment_likes (
+  comment_id uuid not null references public.feed_comments(id) on delete cascade,
+  device_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (comment_id, device_id)
+);
+
+create table if not exists public.feed_comment_replies (
+  id uuid primary key default gen_random_uuid(),
+  comment_id uuid not null references public.feed_comments(id) on delete cascade,
+  author_name text not null,
+  content text not null check (char_length(content) <= 300),
+  created_at timestamptz not null default now()
+);
+
 alter table public.feed_posts enable row level security;
 alter table public.feed_likes enable row level security;
 alter table public.feed_comments enable row level security;
+alter table public.feed_comment_likes enable row level security;
+alter table public.feed_comment_replies enable row level security;
 
+drop policy if exists "feed_posts_select" on public.feed_posts;
+drop policy if exists "feed_posts_insert" on public.feed_posts;
 create policy "feed_posts_select" on public.feed_posts for select using (true);
 create policy "feed_posts_insert" on public.feed_posts for insert with check (true);
 
+drop policy if exists "feed_likes_select" on public.feed_likes;
+drop policy if exists "feed_likes_insert" on public.feed_likes;
+drop policy if exists "feed_likes_delete" on public.feed_likes;
 create policy "feed_likes_select" on public.feed_likes for select using (true);
 create policy "feed_likes_insert" on public.feed_likes for insert with check (true);
 create policy "feed_likes_delete" on public.feed_likes for delete using (true);
 
+drop policy if exists "feed_comments_select" on public.feed_comments;
+drop policy if exists "feed_comments_insert" on public.feed_comments;
 create policy "feed_comments_select" on public.feed_comments for select using (true);
 create policy "feed_comments_insert" on public.feed_comments for insert with check (true);
+
+drop policy if exists "feed_comment_likes_select" on public.feed_comment_likes;
+drop policy if exists "feed_comment_likes_insert" on public.feed_comment_likes;
+drop policy if exists "feed_comment_likes_delete" on public.feed_comment_likes;
+create policy "feed_comment_likes_select" on public.feed_comment_likes for select using (true);
+create policy "feed_comment_likes_insert" on public.feed_comment_likes for insert with check (true);
+create policy "feed_comment_likes_delete" on public.feed_comment_likes for delete using (true);
+
+drop policy if exists "feed_comment_replies_select" on public.feed_comment_replies;
+drop policy if exists "feed_comment_replies_insert" on public.feed_comment_replies;
+create policy "feed_comment_replies_select" on public.feed_comment_replies for select using (true);
+create policy "feed_comment_replies_insert" on public.feed_comment_replies for insert with check (true);
 ```
 
 ## Data Shape (Quran)

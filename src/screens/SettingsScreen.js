@@ -3,40 +3,14 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../theme';
 import { useAppState } from '../state/AppState';
-import { isSupabaseConfigured } from '../lib/supabase';
 
-function StatCard({ label, value }) {
-  return (
-    <View style={styles.statCard}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-    </View>
-  );
-}
-
-export function SettingsScreen() {
-  const { surahs, bookmarkedAyahs, lastRead, clearBookmarks, clearLastRead, profileName, setProfileName } = useAppState();
+export function SettingsScreen({ navigation }) {
+  const { clearBookmarks, clearLastRead, profileName, setProfileName } = useAppState();
   const [draftName, setDraftName] = useState(profileName || '');
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.container}>
-        <Text style={styles.heading}>Settings</Text>
-
-        <View style={styles.row}>
-          <StatCard label="Surahs Loaded" value={String(surahs.length)} />
-          <StatCard label="Bookmarked Ayahs" value={String(bookmarkedAyahs.length)} />
-        </View>
-
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>Last Read</Text>
-          <Text style={styles.blockValue}>
-            {lastRead
-              ? `${lastRead.surah_name} - Ayah ${lastRead.ayah_number}`
-              : 'No progress yet'}
-          </Text>
-        </View>
-
         <View style={styles.block}>
           <Text style={styles.blockTitle}>Display Name</Text>
           <TextInput
@@ -51,12 +25,9 @@ export function SettingsScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>Feed Backend</Text>
-          <Text style={styles.blockValue}>
-            {isSupabaseConfigured ? 'Supabase connected' : 'Supabase not configured'}
-          </Text>
-        </View>
+        <Pressable style={styles.btn} onPress={() => navigation.navigate('MyProfile')}>
+          <Text style={styles.btnText}>My Profile</Text>
+        </Pressable>
 
         <Pressable style={styles.btn} onPress={clearLastRead}>
           <Text style={styles.btnText}>Reset Last Read</Text>
@@ -78,35 +49,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 2,
     gap: 12,
-  },
-  heading: {
-    color: COLORS.text,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    backgroundColor: COLORS.card,
-    padding: 12,
-  },
-  statLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-  },
-  statValue: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 4,
   },
   block: {
     borderWidth: 1,
@@ -120,12 +64,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-  },
-  blockValue: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 6,
   },
   input: {
     marginTop: 8,

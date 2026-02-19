@@ -9,7 +9,7 @@ export function BookmarksScreen({ navigation }) {
   const { bookmarkedAyahs, isBookmarked, toggleBookmark, setLastRead } = useAppState();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.container}>
         <Text style={styles.heading}>Bookmarks</Text>
 
@@ -50,13 +50,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 6,
   },
   heading: {
     color: COLORS.text,
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   list: {
     gap: 10,
