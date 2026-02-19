@@ -69,9 +69,31 @@ function getStyle(styleKey) {
   return POST_STYLES.find((x) => x.key === styleKey) || POST_STYLES[0];
 }
 
-function PostCard({ post, like, latestComment, onLike, onOpenComments, onMenu, captureRef }) {
+function PostCard({ post, like, latestComment, onLike, onDoubleTapLike, onOpenComments, onMenu, captureRef }) {
   const parsed = parseStyledContent(post.content);
   const stylePreset = getStyle(parsed.styleKey);
+  const lastTapRef = useRef(0);
+  const heartAnim = useRef(new Animated.Value(0)).current;
+
+  function playHeart() {
+    heartAnim.setValue(0);
+    Animated.timing(heartAnim, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function onSquarePress() {
+    const now = Date.now();
+    const delta = now - lastTapRef.current;
+    lastTapRef.current = now;
+    if (delta < 280) {
+      if (!like.mine) onDoubleTapLike?.();
+      playHeart();
+    }
+  }
 
   return (
     <View style={styles.postWrap}>
@@ -85,11 +107,28 @@ function PostCard({ post, like, latestComment, onLike, onOpenComments, onMenu, c
         </Pressable>
       </View>
 
-      <ViewShot ref={captureRef} options={{ format: 'jpg', quality: 0.92 }}>
-        <View style={styles.square}>
-          <Text style={[styles.squareText, stylePreset.textStyle]}>{parsed.text}</Text>
-        </View>
-      </ViewShot>
+      <Pressable onPress={onSquarePress}>
+        <ViewShot ref={captureRef} options={{ format: 'jpg', quality: 0.92 }}>
+          <View style={styles.square}>
+            <Text style={[styles.squareText, stylePreset.textStyle]}>{parsed.text}</Text>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.heartOverlay,
+                {
+                  opacity: heartAnim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.95, 0] }),
+                  transform: [
+                    { scale: heartAnim.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0.5, 1.15, 1.35] }) },
+                    { translateY: heartAnim.interpolate({ inputRange: [0, 1], outputRange: [6, -16] }) },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons name="heart" size={74} color="rgba(255,255,255,0.92)" />
+            </Animated.View>
+          </View>
+        </ViewShot>
+      </Pressable>
 
       <View style={styles.rowActions}>
         <Pressable onPress={onLike} style={[styles.badge, like.mine && styles.badgeLiked]}>
@@ -99,26 +138,31 @@ function PostCard({ post, like, latestComment, onLike, onOpenComments, onMenu, c
       </View>
 
       {latestComment ? (
-        <View style={styles.latestCommentBox}>
+        <Pressable onPress={onOpenComments} style={styles.latestCommentBox}>
           <Text style={styles.latestCommentText}><Text style={styles.commentAuthor}>{latestComment.author_name || 'User'}: </Text>{latestComment.content}</Text>
-        </View>
+        </Pressable>
       ) : null}
     </View>
   );
 }
 
-function CommentRow({ item, like, replies, expanded, onToggleLike, onReply, onToggleExpand }) {
-  const visibleReplies = expanded ? replies : replies.slice(-2);
+function CommentRow({ item, like, replies, expanded, onToggleLike, onReply, onReplyToReply, onToggleExpand }) {
+  const visibleReplies = expanded ? replies : replies.slice(-1);
+  const hasReplies = replies.length > 0;
   return (
     <View style={styles.commentRow}>
       <Text style={styles.commentLine}><Text style={styles.commentAuthor}>{item.author_name || 'User'}: </Text>{item.content}</Text>
       <View style={styles.commentActions}>
         <Pressable onPress={onToggleLike}><Text style={styles.commentActionText}>{like.mine ? `Liked ${like.count}` : `Like ${like.count}`}</Text></Pressable>
         <Pressable onPress={onReply}><Text style={styles.commentActionText}>Reply</Text></Pressable>
-        {replies.length > 2 ? <Pressable onPress={onToggleExpand}><Text style={styles.commentActionText}>{expanded ? 'Hide replies' : `View replies ${replies.length}`}</Text></Pressable> : null}
+        {hasReplies && !expanded ? <Pressable onPress={onToggleExpand}><Text style={styles.commentActionText}>View {replies.length} repl{replies.length === 1 ? 'y' : 'ies'}</Text></Pressable> : null}
+        {hasReplies && expanded ? <Pressable onPress={onToggleExpand}><Text style={styles.commentActionText}>Hide replies</Text></Pressable> : null}
       </View>
       {visibleReplies.map((reply) => (
-        <Text key={reply.id} style={styles.replyLine}><Text style={styles.commentAuthor}>{reply.author_name || 'User'}: </Text>{reply.content}</Text>
+        <View key={reply.id} style={styles.replyItem}>
+          <Text style={styles.replyLine}><Text style={styles.commentAuthor}>{reply.author_name || 'User'}: </Text>{reply.content}</Text>
+          <Pressable onPress={() => onReplyToReply(reply)}><Text style={styles.replyActionText}>Reply</Text></Pressable>
+        </View>
       ))}
     </View>
   );
@@ -133,7 +177,7 @@ export function FeedScreen() {
   const [commentsByPost, setCommentsByPost] = useState({});
   const [commentLikesById, setCommentLikesById] = useState({});
   const [repliesByComment, setRepliesByComment] = useState({});
-  const [expandedComments, setExpandedComments] = useState({});
+  const [expandedRepliesByComment, setExpandedRepliesByComment] = useState({});
 
   const [postModalMounted, setPostModalMounted] = useState(false);
   const [compose, setCompose] = useState('');
@@ -178,13 +222,13 @@ export function FeedScreen() {
     return withDevice.data || [];
   }
 
-  const loadFeed = useCallback(async () => {
+  const loadFeed = useCallback(async ({ showLoader = true } = {}) => {
     if (!isSupabaseConfigured || !supabase) {
-      setLoading(false);
+      if (showLoader) setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (showLoader) setLoading(true);
     const postsData = await fetchPostsBase();
     setPosts(postsData);
 
@@ -194,7 +238,7 @@ export function FeedScreen() {
       setCommentsByPost({});
       setCommentLikesById({});
       setRepliesByComment({});
-      setLoading(false);
+      if (showLoader) setLoading(false);
       setHasNewPosts(false);
       return;
     }
@@ -229,7 +273,7 @@ export function FeedScreen() {
     if (!commentIds.length) {
       setCommentLikesById({});
       setRepliesByComment({});
-      setLoading(false);
+      if (showLoader) setLoading(false);
       setHasNewPosts(false);
       return;
     }
@@ -258,7 +302,7 @@ export function FeedScreen() {
 
     setCommentLikesById(commentLikeMap);
     setRepliesByComment(repliesMap);
-    setLoading(false);
+    if (showLoader) setLoading(false);
     setHasNewPosts(false);
   }, [deviceId]);
 
@@ -301,6 +345,7 @@ export function FeedScreen() {
     setActivePost(post);
     setReplyTarget(null);
     setCommentInput('');
+    setExpandedRepliesByComment({});
     setCommentModalMounted(true);
     requestAnimationFrame(() => {
       Animated.timing(commentAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
@@ -309,7 +354,11 @@ export function FeedScreen() {
 
   function closeCommentModal() {
     Animated.timing(commentAnim, { toValue: 0, duration: 170, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
-      if (finished) setCommentModalMounted(false);
+      if (finished) {
+        setCommentModalMounted(false);
+        setReplyTarget(null);
+        setExpandedRepliesByComment({});
+      }
     });
   }
 
@@ -331,7 +380,7 @@ export function FeedScreen() {
     setCompose('');
     setComposeStyleKey('serif');
     closePostModal();
-    await loadFeed();
+    await loadFeed({ showLoader: false });
     setPosting(false);
   }
 
@@ -343,12 +392,18 @@ export function FeedScreen() {
     } else {
       await supabase.from('feed_likes').insert({ post_id: postId, device_id: deviceId });
     }
-    await loadFeed();
+    await loadFeed({ showLoader: false });
   }
 
   async function sendCommentOrReply() {
     if (!supabase || !profileName || !commentInput.trim() || !activePost) return;
-    const text = commentInput.trim();
+    let text = commentInput.trim();
+    if (replyTarget?.replyToName) {
+      const mention = `@${replyTarget.replyToName}`;
+      if (!text.toLowerCase().startsWith(mention.toLowerCase())) {
+        text = `${mention} ${text}`;
+      }
+    }
     setCommentInput('');
 
     if (replyTarget) {
@@ -358,7 +413,7 @@ export function FeedScreen() {
     }
 
     setReplyTarget(null);
-    await loadFeed();
+    await loadFeed({ showLoader: false });
   }
 
   async function toggleCommentLike(commentId) {
@@ -369,7 +424,7 @@ export function FeedScreen() {
     } else {
       await supabase.from('feed_comment_likes').insert({ comment_id: commentId, device_id: deviceId });
     }
-    await loadFeed();
+    await loadFeed({ showLoader: false });
   }
 
   async function savePostImage(postId) {
@@ -427,7 +482,7 @@ export function FeedScreen() {
       Alert.alert('Delete failed', del.error.message || 'Could not delete post');
       return;
     }
-    await loadFeed();
+    await loadFeed({ showLoader: false });
   }
 
   function openMenu(post) {
@@ -471,7 +526,7 @@ export function FeedScreen() {
           data={posts}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadFeed} tintColor={COLORS.gold} />}
+          refreshControl={<RefreshControl refreshing={loading && posts.length > 0} onRefresh={loadFeed} tintColor={COLORS.gold} />}
           ListEmptyComponent={loading ? <ActivityIndicator color={COLORS.gold} /> : <Text style={styles.empty}>No posts yet.</Text>}
           renderItem={({ item }) => {
             const like = likesByPost[item.id] || { count: 0, mine: false };
@@ -483,6 +538,7 @@ export function FeedScreen() {
                 like={like}
                 latestComment={latestComment}
                 onLike={() => toggleLike(item.id)}
+                onDoubleTapLike={() => toggleLike(item.id)}
                 onOpenComments={() => openCommentModal(item)}
                 onMenu={() => openMenu(item)}
                 captureRef={(r) => { if (r) captureRefs.current[item.id] = r; }}
@@ -524,7 +580,8 @@ export function FeedScreen() {
       </Modal>
 
       <Modal visible={commentModalMounted} transparent animationType="none" onRequestClose={closeCommentModal}>
-        <Animated.View style={[styles.overlayBottom, { opacity: commentAnim }]}> 
+        <Animated.View style={[styles.overlayBottom, { opacity: commentAnim }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeCommentModal} />
           <Animated.View style={[styles.commentSheet, { opacity: commentAnim, transform: [{ translateY: commentAnim.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }] }]}>
             <View style={styles.commentSheetHeader}>
               <Text style={styles.sheetTitle}>Comments</Text>
@@ -540,14 +597,29 @@ export function FeedScreen() {
                   item={item}
                   like={commentLikesById[item.id] || { count: 0, mine: false }}
                   replies={repliesByComment[item.id] || []}
-                  expanded={!!expandedComments[item.id]}
+                  expanded={!!expandedRepliesByComment[item.id]}
                   onToggleLike={() => toggleCommentLike(item.id)}
-                  onReply={() => setReplyTarget(item)}
-                  onToggleExpand={() => setExpandedComments((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                  onReply={() =>
+                    setReplyTarget({
+                      id: item.id,
+                      author_name: item.author_name,
+                      replyToName: item.author_name || 'user',
+                    })
+                  }
+                  onReplyToReply={(reply) =>
+                    setReplyTarget({
+                      id: item.id,
+                      author_name: item.author_name,
+                      replyToName: reply.author_name || 'user',
+                    })
+                  }
+                  onToggleExpand={() =>
+                    setExpandedRepliesByComment((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
+                  }
                 />
               )}
             />
-            {replyTarget ? <Text style={styles.replyingLabel}>Replying to {replyTarget.author_name || 'User'}</Text> : null}
+            {replyTarget ? <Text style={styles.replyingLabel}>Replying to @{replyTarget.replyToName || replyTarget.author_name || 'user'}</Text> : null}
             <View style={styles.commentComposer}>
               <TextInput style={styles.commentInput} value={commentInput} onChangeText={setCommentInput} placeholder={replyTarget ? 'Write a reply' : 'Write a comment'} placeholderTextColor={COLORS.muted} />
               <Pressable style={[styles.sendBtn, !commentInput.trim() && styles.btnDisabled]} disabled={!commentInput.trim()} onPress={sendCommentOrReply}><Text style={styles.sendBtnText}>Send</Text></Pressable>
@@ -603,6 +675,15 @@ const styles = StyleSheet.create({
   menuBtn: { paddingHorizontal: 8, paddingVertical: 4 },
   square: { width: '100%', aspectRatio: 1, borderRadius: 14, backgroundColor: '#E7E7E7', justifyContent: 'center', alignItems: 'center', padding: 18 },
   squareText: { color: '#111', textAlign: 'center' },
+  heartOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   rowActions: { marginTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   badge: { borderWidth: 1, borderColor: COLORS.border, backgroundColor: '#0E1526', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   badgeLiked: { borderColor: COLORS.gold, backgroundColor: '#241D12' },
@@ -636,7 +717,7 @@ const styles = StyleSheet.create({
   sheetBtnText: { color: '#1E1608', fontWeight: '800' },
   btnDisabled: { opacity: 0.45 },
 
-  commentSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1, borderColor: COLORS.border, maxHeight: '80%', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12 },
+  commentSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1, borderColor: COLORS.border, maxHeight: '50%', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12 },
   commentSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   closeText: { color: COLORS.gold, fontWeight: '700' },
   commentList: { paddingBottom: 8 },
@@ -644,7 +725,9 @@ const styles = StyleSheet.create({
   commentLine: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
   commentActions: { flexDirection: 'row', gap: 14, marginTop: 4 },
   commentActionText: { color: COLORS.muted, fontSize: 12, fontWeight: '700' },
-  replyLine: { marginTop: 5, marginLeft: 12, color: COLORS.text, fontSize: 13 },
+  replyItem: { marginTop: 5, marginLeft: 12 },
+  replyLine: { marginTop: 0, marginLeft: 0, color: COLORS.text, fontSize: 13 },
+  replyActionText: { marginLeft: 0, marginTop: 2, color: COLORS.muted, fontSize: 11, fontWeight: '700' },
   replyingLabel: { color: COLORS.accent, fontWeight: '700', marginBottom: 6 },
   commentComposer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   commentInput: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, color: COLORS.text, backgroundColor: '#0E1526', paddingHorizontal: 10, paddingVertical: 10 },

@@ -1,0 +1,419 @@
+{
+  "rows_written": 3747,
+  "surah_count": 36,
+  "surah_min": 2,
+  "surah_max": 37,
+  "messages_scanned": 4427,
+  "messages_with_ayah_blocks": 2028,
+  "surah_summary": {
+    "2": {
+      "count": 286,
+      "min_ayah": 1,
+      "max_ayah": 286,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "3": {
+      "count": 200,
+      "min_ayah": 1,
+      "max_ayah": 200,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "4": {
+      "count": 171,
+      "min_ayah": 1,
+      "max_ayah": 176,
+      "missing_count": 5,
+      "first_missing_preview": [
+        96,
+        133,
+        166,
+        167,
+        168
+      ]
+    },
+    "5": {
+      "count": 109,
+      "min_ayah": 1,
+      "max_ayah": 120,
+      "missing_count": 11,
+      "first_missing_preview": [
+        5,
+        6,
+        45,
+        48,
+        82,
+        88,
+        90,
+        91,
+        92,
+        97,
+        101
+      ]
+    },
+    "6": {
+      "count": 159,
+      "min_ayah": 1,
+      "max_ayah": 165,
+      "missing_count": 6,
+      "first_missing_preview": [
+        101,
+        102,
+        131,
+        132,
+        133,
+        134
+      ]
+    },
+    "7": {
+      "count": 203,
+      "min_ayah": 1,
+      "max_ayah": 206,
+      "missing_count": 3,
+      "first_missing_preview": [
+        127,
+        149,
+        150
+      ]
+    },
+    "8": {
+      "count": 75,
+      "min_ayah": 1,
+      "max_ayah": 75,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "9": {
+      "count": 127,
+      "min_ayah": 1,
+      "max_ayah": 128,
+      "missing_count": 2,
+      "first_missing_preview": [
+        125,
+        129
+      ]
+    },
+    "10": {
+      "count": 104,
+      "min_ayah": 1,
+      "max_ayah": 109,
+      "missing_count": 5,
+      "first_missing_preview": [
+        62,
+        86,
+        90,
+        91,
+        92
+      ]
+    },
+    "11": {
+      "count": 119,
+      "min_ayah": 1,
+      "max_ayah": 123,
+      "missing_count": 4,
+      "first_missing_preview": [
+        10,
+        16,
+        37,
+        111
+      ]
+    },
+    "12": {
+      "count": 103,
+      "min_ayah": 1,
+      "max_ayah": 111,
+      "missing_count": 8,
+      "first_missing_preview": [
+        6,
+        27,
+        49,
+        60,
+        72,
+        90,
+        91,
+        98
+      ]
+    },
+    "13": {
+      "count": 42,
+      "min_ayah": 1,
+      "max_ayah": 43,
+      "missing_count": 1,
+      "first_missing_preview": [
+        13
+      ]
+    },
+    "14": {
+      "count": 49,
+      "min_ayah": 1,
+      "max_ayah": 52,
+      "missing_count": 3,
+      "first_missing_preview": [
+        17,
+        22,
+        29
+      ]
+    },
+    "15": {
+      "count": 68,
+      "min_ayah": 1,
+      "max_ayah": 97,
+      "missing_count": 31,
+      "first_missing_preview": [
+        13,
+        15,
+        18,
+        29,
+        31,
+        33,
+        35,
+        37,
+        38,
+        40,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        50,
+        53,
+        54,
+        60
+      ]
+    },
+    "16": {
+      "count": 121,
+      "min_ayah": 1,
+      "max_ayah": 128,
+      "missing_count": 7,
+      "first_missing_preview": [
+        21,
+        54,
+        59,
+        99,
+        100,
+        109,
+        113
+      ]
+    },
+    "17": {
+      "count": 111,
+      "min_ayah": 1,
+      "max_ayah": 111,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "18": {
+      "count": 110,
+      "min_ayah": 1,
+      "max_ayah": 110,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "19": {
+      "count": 95,
+      "min_ayah": 1,
+      "max_ayah": 98,
+      "missing_count": 3,
+      "first_missing_preview": [
+        2,
+        3,
+        4
+      ]
+    },
+    "20": {
+      "count": 131,
+      "min_ayah": 1,
+      "max_ayah": 135,
+      "missing_count": 4,
+      "first_missing_preview": [
+        45,
+        46,
+        111,
+        112
+      ]
+    },
+    "21": {
+      "count": 109,
+      "min_ayah": 1,
+      "max_ayah": 112,
+      "missing_count": 3,
+      "first_missing_preview": [
+        14,
+        15,
+        102
+      ]
+    },
+    "22": {
+      "count": 76,
+      "min_ayah": 1,
+      "max_ayah": 78,
+      "missing_count": 2,
+      "first_missing_preview": [
+        55,
+        56
+      ]
+    },
+    "23": {
+      "count": 118,
+      "min_ayah": 1,
+      "max_ayah": 118,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "24": {
+      "count": 62,
+      "min_ayah": 1,
+      "max_ayah": 64,
+      "missing_count": 2,
+      "first_missing_preview": [
+        25,
+        53
+      ]
+    },
+    "25": {
+      "count": 77,
+      "min_ayah": 1,
+      "max_ayah": 77,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "26": {
+      "count": 226,
+      "min_ayah": 1,
+      "max_ayah": 227,
+      "missing_count": 1,
+      "first_missing_preview": [
+        58
+      ]
+    },
+    "27": {
+      "count": 89,
+      "min_ayah": 4,
+      "max_ayah": 93,
+      "missing_count": 4,
+      "first_missing_preview": [
+        1,
+        2,
+        3,
+        15
+      ]
+    },
+    "28": {
+      "count": 87,
+      "min_ayah": 1,
+      "max_ayah": 88,
+      "missing_count": 1,
+      "first_missing_preview": [
+        18
+      ]
+    },
+    "29": {
+      "count": 66,
+      "min_ayah": 1,
+      "max_ayah": 69,
+      "missing_count": 3,
+      "first_missing_preview": [
+        38,
+        65,
+        66
+      ]
+    },
+    "30": {
+      "count": 58,
+      "min_ayah": 1,
+      "max_ayah": 60,
+      "missing_count": 2,
+      "first_missing_preview": [
+        55,
+        56
+      ]
+    },
+    "31": {
+      "count": 32,
+      "min_ayah": 1,
+      "max_ayah": 34,
+      "missing_count": 2,
+      "first_missing_preview": [
+        5,
+        6
+      ]
+    },
+    "32": {
+      "count": 30,
+      "min_ayah": 1,
+      "max_ayah": 30,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "33": {
+      "count": 72,
+      "min_ayah": 1,
+      "max_ayah": 73,
+      "missing_count": 1,
+      "first_missing_preview": [
+        55
+      ]
+    },
+    "34": {
+      "count": 54,
+      "min_ayah": 1,
+      "max_ayah": 54,
+      "missing_count": 0,
+      "first_missing_preview": []
+    },
+    "35": {
+      "count": 43,
+      "min_ayah": 1,
+      "max_ayah": 45,
+      "missing_count": 2,
+      "first_missing_preview": [
+        8,
+        37
+      ]
+    },
+    "36": {
+      "count": 78,
+      "min_ayah": 1,
+      "max_ayah": 83,
+      "missing_count": 5,
+      "first_missing_preview": [
+        27,
+        28,
+        29,
+        30,
+        55
+      ]
+    },
+    "37": {
+      "count": 87,
+      "min_ayah": 1,
+      "max_ayah": 87,
+      "missing_count": 95,
+      "first_missing_preview": [
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107
+      ]
+    }
+  }
+}

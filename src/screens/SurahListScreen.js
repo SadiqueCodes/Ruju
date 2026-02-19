@@ -36,6 +36,7 @@ export function SurahListScreen({ navigation }) {
                 surahNumber: lastRead.surah_number,
                 surahName: lastRead.surah_name,
                 initialAyah: lastRead.ayah_number,
+                jumpAt: Date.now(),
               })
             }
             style={styles.resumeCard}

@@ -30,6 +30,7 @@ export function BookmarksScreen({ navigation }) {
                     surahNumber: item.surah_number,
                     surahName: item.surah_name,
                     initialAyah: item.ayah_number,
+                    jumpAt: Date.now(),
                   },
                 });
               }}

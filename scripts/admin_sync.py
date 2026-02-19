@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import argparse
 import json
 import re
@@ -104,6 +105,55 @@ def extract_arabic_lines(section: str) -> list[str]:
     return lines
 
 
+def extract_translations(section: str) -> tuple[list[str], list[str]]:
+    translations: list[str] = []
+    removals: list[str] = []
+    seen: set[str] = set()
+
+    patterns = [
+        re.compile(r'["“]([^"\n”]{15,})["”]'),
+        re.compile(r'_([^_\n]{15,})_'),
+    ]
+
+    for pattern in patterns:
+        for match in pattern.finditer(section):
+            candidate = clean_text(match.group(1))
+            if not candidate:
+                continue
+            key = re.sub(r"\s+", " ", candidate).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            translations.append(candidate)
+            removals.append(match.group(0))
+
+    if not translations:
+        for raw_line in section.split("\n"):
+            line = clean_text(raw_line.strip(" *_-•▪\"“”'"))
+            if len(line) < 15:
+                continue
+            if re.search(r"[\u0600-\u06FF]", line):
+                continue
+            if re.search(r"(?i)\b(tafseer|surah|sura|ayat|aayat)\b", line):
+                continue
+            translations.append(line)
+            removals.append(raw_line)
+            break
+
+    return translations, removals
+
+
+def record_quality(row: dict) -> int:
+    score = 0
+    if (row.get("arabic_text") or "").strip():
+        score += 2
+    if (row.get("translation") or "").strip():
+        score += 2
+    if (row.get("tafseer") or "").strip():
+        score += 1
+    return score
+
+
 def build_records(payload: dict) -> tuple[list[dict], dict]:
     messages = payload.get("messages", [])
     records = {}
@@ -171,22 +221,21 @@ def build_records(payload: dict) -> tuple[list[dict], dict]:
                 continue
 
             arabic_lines = extract_arabic_lines(section)
-            quote_matches = list(RX_QUOTE.finditer(section))
-            translations = [q.group(1).strip() for q in quote_matches if q.group(1).strip()]
+            translations, translation_spans = extract_translations(section)
 
             tafseer = section
             for arab_line in arabic_lines:
                 tafseer = re.sub(re.escape(arab_line), "", tafseer, count=1)
-            for q in quote_matches:
-                tafseer = re.sub(re.escape(q.group(0)), "", tafseer, count=1)
+            # Only remove the leading translation span(s) mapped to this ayah block.
+            # Keep later quoted/underscored lines as part of tafseer (e.g. reference quotes).
+            spans_to_remove = min(len(translation_spans), len(ayah_numbers))
+            for span in translation_spans[:spans_to_remove]:
+                tafseer = re.sub(re.escape(span), "", tafseer, count=1)
             tafseer = clean_text(tafseer)
 
             for i, ayah_number in enumerate(ayah_numbers):
                 key = f"{current_surah}|{ayah_number}"
-                if key in records:
-                    continue
-
-                records[key] = {
+                candidate = {
                     "surah_number": current_surah,
                     "surah_name": current_name or f"Surah {current_surah}",
                     "juz_number": get_juz(current_surah, ayah_number),
@@ -196,6 +245,15 @@ def build_records(payload: dict) -> tuple[list[dict], dict]:
                     "tafseer": tafseer,
                     "source_post_id": msg.get("id"),
                 }
+
+                existing = records.get(key)
+                if not existing:
+                    records[key] = candidate
+                    continue
+
+                # Prefer richer rows for the same ayah (handles "Ayat 1-3" header + detailed sub-blocks).
+                if record_quality(candidate) > record_quality(existing):
+                    records[key] = candidate
 
     rows = sorted(records.values(), key=lambda item: (item["surah_number"], item["ayah_number"], item.get("source_post_id") or 0))
 
