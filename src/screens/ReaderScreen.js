@@ -2,13 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AyahCard } from '../components/AyahCard';
-import { COLORS } from '../theme';
+import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 import { filterAyahs } from '../utils/quranData';
 
 export function ReaderScreen({ route }) {
   const { surahNumber, initialAyah, jumpAt } = route.params || {};
-  const { ayahsBySurah, isBookmarked, toggleBookmark, setLastRead } = useAppState();
+  const { ayahsBySurah, isBookmarked, toggleBookmark, setLastRead, themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
+  const isLight = themeMode === 'light';
   const [query, setQuery] = useState('');
   const listRef = useRef(null);
   const lastHandledJumpKeyRef = useRef('');
@@ -94,14 +96,14 @@ export function ReaderScreen({ route }) {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['bottom']}>
       <View style={styles.container}>
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search inside this surah"
-          placeholderTextColor={COLORS.muted}
-          style={styles.input}
+          placeholderTextColor={colors.muted}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: isLight ? '#F2F6FF' : '#0E1526', color: colors.text }]}
         />
 
         <FlatList
@@ -127,7 +129,7 @@ export function ReaderScreen({ route }) {
               onPress={() => setLastRead(item)}
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No ayah found in this filter.</Text>}
+          ListEmptyComponent={<Text style={[styles.empty, { color: colors.muted }]}>No ayah found in this filter.</Text>}
         />
       </View>
     </SafeAreaView>
@@ -137,7 +139,6 @@ export function ReaderScreen({ route }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   container: {
     flex: 1,
@@ -146,10 +147,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border,
     borderRadius: 14,
-    backgroundColor: '#0E1526',
-    color: COLORS.text,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 12,
@@ -159,7 +157,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   empty: {
-    color: COLORS.muted,
     textAlign: 'center',
     marginTop: 20,
   },

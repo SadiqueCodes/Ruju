@@ -20,7 +20,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../theme';
+import { COLORS, getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
@@ -69,7 +69,7 @@ function getStyle(styleKey) {
   return POST_STYLES.find((x) => x.key === styleKey) || POST_STYLES[0];
 }
 
-function PostCard({ post, like, latestComment, onLike, onDoubleTapLike, onOpenComments, onMenu, captureRef }) {
+function PostCard({ post, like, latestComment, onLike, onDoubleTapLike, onOpenComments, onMenu, captureRef, colors, isLight }) {
   const parsed = parseStyledContent(post.content);
   const stylePreset = getStyle(parsed.styleKey);
   const lastTapRef = useRef(0);
@@ -96,14 +96,14 @@ function PostCard({ post, like, latestComment, onLike, onDoubleTapLike, onOpenCo
   }
 
   return (
-    <View style={styles.postWrap}>
+    <View style={[styles.postWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
       <View style={styles.postHeader}>
         <View style={styles.authorRow}>
-          <Text style={styles.author}>{post.author_name || 'Anonymous'}</Text>
-          <Text style={styles.time}>| {ago(post.created_at)}</Text>
+          <Text style={[styles.author, { color: colors.text }]}>{post.author_name || 'Anonymous'}</Text>
+          <Text style={[styles.time, { color: colors.muted }]}>| {ago(post.created_at)}</Text>
         </View>
         <Pressable onPress={onMenu} style={styles.menuBtn}>
-          <Ionicons name="ellipsis-horizontal" size={18} color={COLORS.muted} />
+          <Ionicons name="ellipsis-horizontal" size={18} color={colors.muted} />
         </Pressable>
       </View>
 
@@ -131,37 +131,37 @@ function PostCard({ post, like, latestComment, onLike, onDoubleTapLike, onOpenCo
       </Pressable>
 
       <View style={styles.rowActions}>
-        <Pressable onPress={onLike} style={[styles.badge, like.mine && styles.badgeLiked]}>
-          <Text style={[styles.badgeText, like.mine && styles.badgeTextLiked]}>{like.mine ? 'Liked' : 'Like'} {like.count}</Text>
+        <Pressable onPress={onLike} style={[styles.badge, { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' }, like.mine && styles.badgeLiked, like.mine && { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }]}>
+          <Text style={[styles.badgeText, { color: colors.text }, like.mine && styles.badgeTextLiked, like.mine && { color: colors.gold }]}>{like.mine ? 'Liked' : 'Like'} {like.count}</Text>
         </Pressable>
-        <Pressable onPress={onOpenComments} style={styles.badge}><Text style={styles.badgeText}>Comment</Text></Pressable>
+        <Pressable onPress={onOpenComments} style={[styles.badge, { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' }]}><Text style={[styles.badgeText, { color: colors.text }]}>Comment</Text></Pressable>
       </View>
 
       {latestComment ? (
-        <Pressable onPress={onOpenComments} style={styles.latestCommentBox}>
-          <Text style={styles.latestCommentText}><Text style={styles.commentAuthor}>{latestComment.author_name || 'User'}: </Text>{latestComment.content}</Text>
+        <Pressable onPress={onOpenComments} style={[styles.latestCommentBox, { borderTopColor: colors.border }]}>
+          <Text style={[styles.latestCommentText, { color: colors.text }]}><Text style={[styles.commentAuthor, { color: colors.accent }]}>{latestComment.author_name || 'User'}: </Text>{latestComment.content}</Text>
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-function CommentRow({ item, like, replies, expanded, onToggleLike, onReply, onReplyToReply, onToggleExpand }) {
+function CommentRow({ item, like, replies, expanded, onToggleLike, onReply, onReplyToReply, onToggleExpand, colors }) {
   const visibleReplies = expanded ? replies : replies.slice(-1);
   const hasReplies = replies.length > 0;
   return (
-    <View style={styles.commentRow}>
-      <Text style={styles.commentLine}><Text style={styles.commentAuthor}>{item.author_name || 'User'}: </Text>{item.content}</Text>
+    <View style={[styles.commentRow, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.commentLine, { color: colors.text }]}><Text style={[styles.commentAuthor, { color: colors.accent }]}>{item.author_name || 'User'}: </Text>{item.content}</Text>
       <View style={styles.commentActions}>
-        <Pressable onPress={onToggleLike}><Text style={styles.commentActionText}>{like.mine ? `Liked ${like.count}` : `Like ${like.count}`}</Text></Pressable>
-        <Pressable onPress={onReply}><Text style={styles.commentActionText}>Reply</Text></Pressable>
-        {hasReplies && !expanded ? <Pressable onPress={onToggleExpand}><Text style={styles.commentActionText}>View {replies.length} repl{replies.length === 1 ? 'y' : 'ies'}</Text></Pressable> : null}
-        {hasReplies && expanded ? <Pressable onPress={onToggleExpand}><Text style={styles.commentActionText}>Hide replies</Text></Pressable> : null}
+        <Pressable onPress={onToggleLike}><Text style={[styles.commentActionText, { color: colors.muted }]}>{like.mine ? `Liked ${like.count}` : `Like ${like.count}`}</Text></Pressable>
+        <Pressable onPress={onReply}><Text style={[styles.commentActionText, { color: colors.muted }]}>Reply</Text></Pressable>
+        {hasReplies && !expanded ? <Pressable onPress={onToggleExpand}><Text style={[styles.commentActionText, { color: colors.muted }]}>View {replies.length} repl{replies.length === 1 ? 'y' : 'ies'}</Text></Pressable> : null}
+        {hasReplies && expanded ? <Pressable onPress={onToggleExpand}><Text style={[styles.commentActionText, { color: colors.muted }]}>Hide replies</Text></Pressable> : null}
       </View>
       {visibleReplies.map((reply) => (
         <View key={reply.id} style={styles.replyItem}>
-          <Text style={styles.replyLine}><Text style={styles.commentAuthor}>{reply.author_name || 'User'}: </Text>{reply.content}</Text>
-          <Pressable onPress={() => onReplyToReply(reply)}><Text style={styles.replyActionText}>Reply</Text></Pressable>
+          <Text style={[styles.replyLine, { color: colors.text }]}><Text style={[styles.commentAuthor, { color: colors.accent }]}>{reply.author_name || 'User'}: </Text>{reply.content}</Text>
+          <Pressable onPress={() => onReplyToReply(reply)}><Text style={[styles.replyActionText, { color: colors.muted }]}>Reply</Text></Pressable>
         </View>
       ))}
     </View>
@@ -169,7 +169,9 @@ function CommentRow({ item, like, replies, expanded, onToggleLike, onReply, onRe
 }
 
 export function FeedScreen() {
-  const { profileName, deviceId } = useAppState();
+  const { profileName, deviceId, themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
+  const isLight = themeMode === 'light';
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [posts, setPosts] = useState([]);
@@ -494,12 +496,12 @@ export function FeedScreen() {
 
   if (!isSupabaseConfigured) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.container}>
-          <Text style={styles.heading}>Feed</Text>
-          <View style={styles.warnBox}>
-            <Text style={styles.warnTitle}>Supabase not configured</Text>
-            <Text style={styles.warnText}>Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`.</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>Feed</Text>
+          <View style={[styles.warnBox, { borderColor: colors.gold, backgroundColor: themeMode === 'light' ? '#FFF4DB' : '#2A1F12' }]}>
+            <Text style={[styles.warnTitle, { color: colors.gold }]}>Supabase not configured</Text>
+            <Text style={[styles.warnText, { color: colors.text }]}>Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`.</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -507,18 +509,18 @@ export function FeedScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Feed</Text>
-          <Pressable style={styles.newBtnShell} onPress={openPostModal}>
-            <View style={styles.newBtnInner}><Text style={styles.newBtnText}>NEW POST</Text></View>
+          <Text style={[styles.heading, { color: colors.text }]}>Feed</Text>
+          <Pressable style={[styles.newBtnShell, { backgroundColor: colors.gold }]} onPress={openPostModal}>
+            <View style={[styles.newBtnInner, { backgroundColor: themeMode === 'light' ? '#FFFFFF' : '#0F1729', borderColor: themeMode === 'light' ? '#D7C6A2' : '#4B402C' }]}><Text style={[styles.newBtnText, { color: colors.gold }]}>NEW POST</Text></View>
           </Pressable>
         </View>
 
         {hasNewPosts ? (
-          <Pressable style={styles.refreshBanner} onPress={loadFeed}>
-            <Text style={styles.refreshBannerText}>New posts available. Swipe down to refresh.</Text>
+          <Pressable style={[styles.refreshBanner, { backgroundColor: themeMode === 'light' ? '#E8F1FF' : '#1A2D4A', borderColor: themeMode === 'light' ? '#B7CAE8' : '#355179' }]} onPress={loadFeed}>
+            <Text style={[styles.refreshBannerText, { color: colors.text }]}>New posts available. Swipe down to refresh.</Text>
           </Pressable>
         ) : null}
 
@@ -526,8 +528,8 @@ export function FeedScreen() {
           data={posts}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={loading && posts.length > 0} onRefresh={loadFeed} tintColor={COLORS.gold} />}
-          ListEmptyComponent={loading ? <ActivityIndicator color={COLORS.gold} /> : <Text style={styles.empty}>No posts yet.</Text>}
+          refreshControl={<RefreshControl refreshing={loading && posts.length > 0} onRefresh={loadFeed} tintColor={colors.gold} />}
+          ListEmptyComponent={loading ? <ActivityIndicator color={colors.gold} /> : <Text style={[styles.empty, { color: colors.muted }]}>No posts yet.</Text>}
           renderItem={({ item }) => {
             const like = likesByPost[item.id] || { count: 0, mine: false };
             const comments = commentsByPost[item.id] || [];
@@ -542,6 +544,8 @@ export function FeedScreen() {
                 onOpenComments={() => openCommentModal(item)}
                 onMenu={() => openMenu(item)}
                 captureRef={(r) => { if (r) captureRefs.current[item.id] = r; }}
+                colors={colors}
+                isLight={isLight}
               />
             );
           }}
@@ -549,28 +553,28 @@ export function FeedScreen() {
       </View>
 
       {savedToast ? (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>Saved to gallery</Text>
+        <View style={[styles.toast, { backgroundColor: isLight ? '#E9F8EC' : '#163227', borderColor: isLight ? '#5AAA7A' : '#2E7A57' }]}>
+          <Text style={[styles.toastText, { color: isLight ? '#1D5A39' : '#D8F8E8' }]}>Saved to gallery</Text>
         </View>
       ) : null}
 
       <Modal visible={postModalMounted} transparent animationType="none" onRequestClose={closePostModal}>
         <Animated.View style={[styles.overlay, { opacity: postAnim }]}> 
-          <Animated.View style={[styles.sheet, { opacity: postAnim, transform: [{ translateY: postAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
-            <Text style={styles.sheetTitle}>Create Post</Text>
-            <TextInput value={compose} onChangeText={setCompose} style={styles.composeInput} multiline maxLength={300} placeholder="Write your post text" placeholderTextColor={COLORS.muted} />
-            <Text style={styles.sectionLabel}>Font Style</Text>
+          <Animated.View style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: postAnim, transform: [{ translateY: postAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Create Post</Text>
+            <TextInput value={compose} onChangeText={setCompose} style={[styles.composeInput, { borderColor: colors.border, backgroundColor: isLight ? '#F2F6FF' : '#0E1526', color: colors.text }]} multiline maxLength={300} placeholder="Write your post text" placeholderTextColor={colors.muted} />
+            <Text style={[styles.sectionLabel, { color: colors.muted }]}>Font Style</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fontRow}>
               {POST_STYLES.map((item) => (
-                <Pressable key={item.key} onPress={() => setComposeStyleKey(item.key)} style={[styles.fontChip, composeStyleKey === item.key && styles.fontChipActive]}>
-                  <Text style={[styles.fontChipText, composeStyleKey === item.key && styles.fontChipTextActive]}>{item.label}</Text>
+                <Pressable key={item.key} onPress={() => setComposeStyleKey(item.key)} style={[styles.fontChip, { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' }, composeStyleKey === item.key && styles.fontChipActive, composeStyleKey === item.key && { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }]}>
+                  <Text style={[styles.fontChipText, { color: colors.text }, composeStyleKey === item.key && styles.fontChipTextActive, composeStyleKey === item.key && { color: colors.gold }]}>{item.label}</Text>
                 </Pressable>
               ))}
             </ScrollView>
-            <Text style={styles.sectionLabel}>Preview</Text>
-            <View style={styles.previewBox}><Text style={[styles.previewText, composeStyle.textStyle]}>{compose || 'Your post preview appears here.'}</Text></View>
+            <Text style={[styles.sectionLabel, { color: colors.muted }]}>Preview</Text>
+            <View style={[styles.previewBox, { borderColor: colors.border }]}><Text style={[styles.previewText, composeStyle.textStyle]}>{compose || 'Your post preview appears here.'}</Text></View>
             <View style={styles.sheetButtons}>
-              <Pressable style={styles.sheetBtnAlt} onPress={closePostModal}><Text style={styles.sheetBtnAltText}>Cancel</Text></Pressable>
+              <Pressable style={[styles.sheetBtnAlt, { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : 'transparent' }]} onPress={closePostModal}><Text style={[styles.sheetBtnAltText, { color: colors.text }]}>Cancel</Text></Pressable>
               <Pressable style={[styles.sheetBtn, (!canPost || posting) && styles.btnDisabled]} onPress={createPost} disabled={!canPost || posting}>
                 {posting ? <ActivityIndicator color="#1E1608" size="small" /> : <Text style={styles.sheetBtnText}>Post</Text>}
               </Pressable>
@@ -580,18 +584,36 @@ export function FeedScreen() {
       </Modal>
 
       <Modal visible={commentModalMounted} transparent animationType="none" onRequestClose={closeCommentModal}>
-        <Animated.View style={[styles.overlayBottom, { opacity: commentAnim }]}>
+        <Animated.View
+          style={[
+            styles.overlayBottom,
+            {
+              backgroundColor: isLight ? 'rgba(15,23,42,0.16)' : 'rgba(0,0,0,0.45)',
+              opacity: commentAnim,
+            },
+          ]}
+        >
           <Pressable style={StyleSheet.absoluteFill} onPress={closeCommentModal} />
-          <Animated.View style={[styles.commentSheet, { opacity: commentAnim, transform: [{ translateY: commentAnim.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }] }]}>
+          <Animated.View
+            style={[
+              styles.commentSheet,
+              {
+                backgroundColor: isLight ? '#FFFFFF' : colors.card,
+                borderColor: colors.border,
+                opacity: commentAnim,
+                transform: [{ translateY: commentAnim.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }],
+              },
+            ]}
+          >
             <View style={styles.commentSheetHeader}>
-              <Text style={styles.sheetTitle}>Comments</Text>
-              <Pressable onPress={closeCommentModal}><Text style={styles.closeText}>Close</Text></Pressable>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>Comments</Text>
+              <Pressable onPress={closeCommentModal}><Text style={[styles.closeText, { color: colors.gold }]}>Close</Text></Pressable>
             </View>
             <FlatList
               data={activeComments}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.commentList}
-              ListEmptyComponent={<Text style={styles.empty}>No comments yet.</Text>}
+              ListEmptyComponent={<Text style={[styles.empty, { color: colors.muted }]}>No comments yet.</Text>}
               renderItem={({ item }) => (
                 <CommentRow
                   item={item}
@@ -616,12 +638,13 @@ export function FeedScreen() {
                   onToggleExpand={() =>
                     setExpandedRepliesByComment((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
                   }
+                  colors={colors}
                 />
               )}
             />
-            {replyTarget ? <Text style={styles.replyingLabel}>Replying to @{replyTarget.replyToName || replyTarget.author_name || 'user'}</Text> : null}
-            <View style={styles.commentComposer}>
-              <TextInput style={styles.commentInput} value={commentInput} onChangeText={setCommentInput} placeholder={replyTarget ? 'Write a reply' : 'Write a comment'} placeholderTextColor={COLORS.muted} />
+            {replyTarget ? <Text style={[styles.replyingLabel, { color: colors.accent }]}>Replying to @{replyTarget.replyToName || replyTarget.author_name || 'user'}</Text> : null}
+            <View style={[styles.commentComposer, { borderTopColor: colors.border }]}>
+              <TextInput style={[styles.commentInput, { borderColor: colors.border, backgroundColor: isLight ? '#F2F6FF' : '#0E1526', color: colors.text }]} value={commentInput} onChangeText={setCommentInput} placeholder={replyTarget ? 'Write a reply' : 'Write a comment'} placeholderTextColor={colors.muted} />
               <Pressable style={[styles.sendBtn, !commentInput.trim() && styles.btnDisabled]} disabled={!commentInput.trim()} onPress={sendCommentOrReply}><Text style={styles.sendBtnText}>Send</Text></Pressable>
             </View>
           </Animated.View>
@@ -630,12 +653,12 @@ export function FeedScreen() {
 
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuSheet}>
-            <Pressable style={styles.menuItem} onPress={async () => { setMenuVisible(false); if (menuPost) await sharePostImage(menuPost.id); }}><Text style={styles.menuItemText}>Share as Image</Text></Pressable>
-            <Pressable style={styles.menuItem} onPress={async () => { setMenuVisible(false); if (menuPost) await savePostImage(menuPost.id); }}><Text style={styles.menuItemText}>Save Image</Text></Pressable>
+          <View style={[styles.menuSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Pressable style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={async () => { setMenuVisible(false); if (menuPost) await sharePostImage(menuPost.id); }}><Text style={[styles.menuItemText, { color: colors.text }]}>Share as Image</Text></Pressable>
+            <Pressable style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={async () => { setMenuVisible(false); if (menuPost) await savePostImage(menuPost.id); }}><Text style={[styles.menuItemText, { color: colors.text }]}>Save Image</Text></Pressable>
             {menuPost && isMine(menuPost) ? (
               <Pressable
-                style={styles.menuItem}
+                style={[styles.menuItem, { borderBottomColor: colors.border }]}
                 onPress={() => {
                   setMenuVisible(false);
                   Alert.alert('Delete Post', 'Delete this post permanently?', [
@@ -729,7 +752,7 @@ const styles = StyleSheet.create({
   replyLine: { marginTop: 0, marginLeft: 0, color: COLORS.text, fontSize: 13 },
   replyActionText: { marginLeft: 0, marginTop: 2, color: COLORS.muted, fontSize: 11, fontWeight: '700' },
   replyingLabel: { color: COLORS.accent, fontWeight: '700', marginBottom: 6 },
-  commentComposer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  commentComposer: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, paddingTop: 8, marginTop: 2 },
   commentInput: { flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, color: COLORS.text, backgroundColor: '#0E1526', paddingHorizontal: 10, paddingVertical: 10 },
   sendBtn: { backgroundColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
   sendBtnText: { color: '#1E1608', fontWeight: '800' },

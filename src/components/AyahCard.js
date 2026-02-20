@@ -1,7 +1,8 @@
 ﻿import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../theme';
+import { getThemeColors } from '../theme';
 import { cleanArabicText, cleanBodyText } from '../utils/textCleaner';
+import { useAppState } from '../state/AppState';
 
 function normalizeBodyDisplay(value) {
   let text = String(value || '')
@@ -9,7 +10,6 @@ function normalizeBodyDisplay(value) {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  // Strip wrapping markdown emphasis markers used in source text.
   let changed = true;
   while (changed) {
     changed = false;
@@ -89,14 +89,12 @@ function extractTopTranslationCandidate(tafseerRaw) {
   let candidateIndex = -1;
   let candidateText = '';
 
-  // Only inspect the first few non-empty lines near the top.
   let inspected = 0;
   for (let i = 0; i < lines.length && inspected < 8; i += 1) {
     const line = lines[i].trim();
     if (!line) continue;
     inspected += 1;
 
-    // Skip tafseer bullet/citation lines.
     if (/^[🔸🔹🔺🔻🔅🔆📖📚♦️❇️⭐🌸🌼🌷]/u.test(line)) continue;
     if (/^\[?\s*\*?\s*Surah\b/i.test(line)) continue;
 
@@ -148,36 +146,47 @@ function deriveTranslationAndTafseer(ayah) {
 }
 
 export function AyahCard({ ayah, bookmarked, onToggleBookmark, onPress }) {
+  const { themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
+  const isLight = themeMode === 'light';
+
   const arabicText = cleanArabicText(ayah.arabic_text);
   const { translationText, tafseerText } = deriveTranslationAndTafseer(ayah);
 
   return (
-    <Pressable onPress={onPress} style={styles.card}>
+    <Pressable onPress={onPress} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}> 
       <View style={styles.rowTop}>
-        <Text style={styles.ayahNo}>Ayah {ayah.ayah_number}</Text>
+        <Text style={[styles.ayahNo, { color: colors.gold }]}>Ayah {ayah.ayah_number}</Text>
         <View style={styles.rowRight}>
-          <Text style={styles.juz}>Juz {ayah.juz_number || '-'}</Text>
+          <Text style={[styles.juz, { color: colors.muted }]}>Juz {ayah.juz_number || '-'}</Text>
           {onToggleBookmark ? (
-            <Pressable onPress={onToggleBookmark} style={[styles.saveBtn, bookmarked && styles.saveBtnActive]}>
-              <Text style={[styles.saveText, bookmarked && styles.saveTextActive]}>{bookmarked ? 'Saved' : 'Save'}</Text>
+            <Pressable
+              onPress={onToggleBookmark}
+              style={[
+                styles.saveBtn,
+                { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#101829' },
+                bookmarked && { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#221A0C' },
+              ]}
+            >
+              <Text style={[styles.saveText, { color: bookmarked ? colors.gold : colors.text }]}>{bookmarked ? 'Saved' : 'Save'}</Text>
             </Pressable>
           ) : null}
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Arabic</Text>
-        {arabicText ? <Text style={styles.arabic}>{arabicText}</Text> : <Text style={styles.placeholder}>Arabic text not available yet.</Text>}
+      <View style={[styles.section, { borderTopColor: isLight ? '#D9E2F0' : '#1D2941' }]}> 
+        <Text style={[styles.label, { color: colors.accent }]}>Arabic</Text>
+        {arabicText ? <Text style={[styles.arabic, { color: isLight ? '#1B2435' : '#FFFFFF' }]}>{arabicText}</Text> : <Text style={[styles.placeholder, { color: isLight ? '#6E7993' : '#7D89A6' }]}>Arabic text not available yet.</Text>}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Translation</Text>
-        {translationText ? <Text style={styles.translation}>{translationText}</Text> : <Text style={styles.placeholder}>Translation not available yet.</Text>}
+      <View style={[styles.section, { borderTopColor: isLight ? '#D9E2F0' : '#1D2941' }]}> 
+        <Text style={[styles.label, { color: colors.accent }]}>Translation</Text>
+        {translationText ? <Text style={[styles.translation, { color: colors.text }]}>{translationText}</Text> : <Text style={[styles.placeholder, { color: isLight ? '#6E7993' : '#7D89A6' }]}>Translation not available yet.</Text>}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Tafseer</Text>
-        {tafseerText ? <Text style={styles.tafseer}>{tafseerText}</Text> : <Text style={styles.placeholder}>Tafseer not available yet.</Text>}
+      <View style={[styles.section, { borderTopColor: isLight ? '#D9E2F0' : '#1D2941' }]}> 
+        <Text style={[styles.label, { color: colors.accent }]}>Tafseer</Text>
+        {tafseerText ? <Text style={[styles.tafseer, { color: colors.muted }]}>{tafseerText}</Text> : <Text style={[styles.placeholder, { color: isLight ? '#6E7993' : '#7D89A6' }]}>Tafseer not available yet.</Text>}
       </View>
     </Pressable>
   );
@@ -185,10 +194,8 @@ export function AyahCard({ ayah, bookmarked, onToggleBookmark, onPress }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLORS.border,
     padding: 15,
     gap: 12,
   },
@@ -203,67 +210,49 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ayahNo: {
-    color: COLORS.gold,
     fontWeight: '700',
     fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   juz: {
-    color: COLORS.muted,
     fontSize: 12,
   },
   saveBtn: {
-    borderColor: COLORS.border,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#101829',
-  },
-  saveBtnActive: {
-    borderColor: COLORS.gold,
-    backgroundColor: '#221A0C',
   },
   saveText: {
-    color: COLORS.text,
     fontSize: 11,
     fontWeight: '700',
   },
-  saveTextActive: {
-    color: COLORS.gold,
-  },
   section: {
     borderTopWidth: 1,
-    borderTopColor: '#1D2941',
     paddingTop: 10,
     gap: 6,
   },
   label: {
-    color: COLORS.accent,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.9,
     textTransform: 'uppercase',
   },
   arabic: {
-    color: '#FFFFFF',
     fontSize: 24,
     lineHeight: 42,
     textAlign: 'right',
   },
   translation: {
-    color: COLORS.text,
     fontSize: 15,
     lineHeight: 23,
   },
   tafseer: {
-    color: COLORS.muted,
     fontSize: 14,
     lineHeight: 21,
   },
   placeholder: {
-    color: '#7D89A6',
     fontSize: 13,
     fontStyle: 'italic',
   },

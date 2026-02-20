@@ -2,20 +2,22 @@ import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AyahCard } from '../components/AyahCard';
-import { COLORS } from '../theme';
+import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 
 export function BookmarksScreen({ navigation }) {
-  const { bookmarkedAyahs, isBookmarked, toggleBookmark, setLastRead } = useAppState();
+  const { bookmarkedAyahs, isBookmarked, toggleBookmark, setLastRead, themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
-      <View style={styles.container}>
-        <Text style={styles.heading}>Bookmarks</Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right', 'bottom']}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <Text style={[styles.heading, { color: colors.text }]}>Bookmarks</Text>
 
         <FlatList
           data={bookmarkedAyahs}
           keyExtractor={(item) => `${item.surah_number}:${item.ayah_number}`}
+          style={{ backgroundColor: colors.bg }}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <AyahCard
@@ -36,7 +38,7 @@ export function BookmarksScreen({ navigation }) {
               }}
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No bookmarks yet.</Text>}
+          ListEmptyComponent={<Text style={[styles.empty, { color: colors.muted }]}>No bookmarks yet.</Text>}
         />
       </View>
     </SafeAreaView>
@@ -46,7 +48,6 @@ export function BookmarksScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   container: {
     flex: 1,
@@ -54,17 +55,16 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   heading: {
-    color: COLORS.text,
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 8,
   },
   list: {
+    flexGrow: 1,
     gap: 10,
     paddingBottom: 40,
   },
   empty: {
-    color: COLORS.muted,
     textAlign: 'center',
     marginTop: 20,
   },
