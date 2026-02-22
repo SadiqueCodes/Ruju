@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ayahRows from '../../ayahs_formatted.json';
 import { buildQuranIndex } from '../utils/quranData';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 const STORAGE_BOOKMARKS = 'ruju.bookmarks.v1';
 const STORAGE_LAST_READ = 'ruju.lastRead.v1';
@@ -16,6 +17,52 @@ function makeAyahKey(surahNumber, ayahNumber) {
   return `${surahNumber}:${ayahNumber}`;
 }
 
+function pickRicherText(prevText, nextText) {
+  const a = String(prevText || '').trim();
+  const b = String(nextText || '').trim();
+  if (!a) return b;
+  if (!b) return a;
+  const aNorm = a.replace(/\s+/g, ' ').toLowerCase();
+  const bNorm = b.replace(/\s+/g, ' ').toLowerCase();
+  if (aNorm === bNorm) return a.length >= b.length ? a : b;
+  if (aNorm.includes(bNorm)) return a;
+  if (bNorm.includes(aNorm)) return b;
+  return a.length >= b.length ? a : b;
+}
+
+function mergeAyahRows(localRows, remoteRows) {
+  if (!Array.isArray(remoteRows) || remoteRows.length === 0) return localRows;
+
+  const merged = new Map();
+  for (const row of localRows || []) {
+    if (!row || !Number.isInteger(row.surah_number) || !Number.isInteger(row.ayah_number)) continue;
+    merged.set(makeAyahKey(row.surah_number, row.ayah_number), row);
+  }
+
+  for (const row of remoteRows) {
+    if (!row || !Number.isInteger(row.surah_number) || !Number.isInteger(row.ayah_number)) continue;
+    const key = makeAyahKey(row.surah_number, row.ayah_number);
+    const prev = merged.get(key);
+    if (!prev) {
+      merged.set(key, row);
+      continue;
+    }
+
+    // Keep existing fields and prefer remote for non-empty content.
+    merged.set(key, {
+      ...prev,
+      ...row,
+      arabic_text: pickRicherText(prev.arabic_text, row.arabic_text),
+      translation: pickRicherText(prev.translation, row.translation),
+      tafseer: pickRicherText(prev.tafseer, row.tafseer),
+      surah_name: row.surah_name || prev.surah_name || `Surah ${row.surah_number}`,
+      source_post_id: row.source_post_id ?? prev.source_post_id ?? null,
+    });
+  }
+
+  return Array.from(merged.values());
+}
+
 export function AppStateProvider({ children }) {
   const [bookmarks, setBookmarks] = useState({});
   const [lastRead, setLastReadState] = useState(null);
@@ -23,9 +70,16 @@ export function AppStateProvider({ children }) {
   const [profileGender, setProfileGenderState] = useState('');
   const [deviceId, setDeviceId] = useState('');
   const [themeMode, setThemeModeState] = useState('dark');
+  const [remoteAyahRows, setRemoteAyahRows] = useState([]);
+  const [isAyahSyncing, setIsAyahSyncing] = useState(false);
+  const [ayahDataSource, setAyahDataSource] = useState('local');
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const { surahs, ayahsBySurah, ayahByKey } = useMemo(() => buildQuranIndex(ayahRows), []);
+  const effectiveAyahRows = useMemo(
+    () => mergeAyahRows(ayahRows, remoteAyahRows),
+    [remoteAyahRows]
+  );
+  const { surahs, ayahsBySurah, ayahByKey } = useMemo(() => buildQuranIndex(effectiveAyahRows), [effectiveAyahRows]);
 
   useEffect(() => {
     let mounted = true;
@@ -105,6 +159,32 @@ export function AppStateProvider({ children }) {
     AsyncStorage.setItem(STORAGE_THEME_MODE, themeMode).catch(() => {});
   }, [themeMode, isHydrated]);
 
+  const refreshAyahData = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setAyahDataSource('local');
+      return;
+    }
+
+    setIsAyahSyncing(true);
+    const { data, error } = await supabase
+      .from('ayahs')
+      .select('surah_number,surah_name,juz_number,ayah_number,arabic_text,translation,tafseer,source_post_id')
+      .order('surah_number', { ascending: true })
+      .order('ayah_number', { ascending: true });
+
+    if (!error && Array.isArray(data) && data.length) {
+      setRemoteAyahRows(data);
+      setAyahDataSource('supabase');
+    } else {
+      setAyahDataSource('local');
+    }
+    setIsAyahSyncing(false);
+  }, []);
+
+  useEffect(() => {
+    refreshAyahData();
+  }, []);
+
   const bookmarkedAyahs = useMemo(() => {
     const out = [];
     const keys = Object.keys(bookmarks).filter((key) => bookmarks[key]);
@@ -125,6 +205,8 @@ export function AppStateProvider({ children }) {
     profileName,
     profileGender,
     themeMode,
+    ayahDataSource,
+    isAyahSyncing,
     deviceId,
     isHydrated,
     hasProfileName: !!profileName.trim() && (profileGender === 'male' || profileGender === 'female'),
@@ -153,6 +235,11 @@ export function AppStateProvider({ children }) {
     },
     clearBookmarks: () => setBookmarks({}),
     clearLastRead: () => setLastReadState(null),
+    clearProfileSetup: () => {
+      setProfileNameState('');
+      setProfileGenderState('');
+    },
+    refreshAyahData,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

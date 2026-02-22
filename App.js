@@ -13,6 +13,7 @@ import { ReaderScreen } from './src/screens/ReaderScreen';
 import { BookmarksScreen } from './src/screens/BookmarksScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { MyProfileScreen } from './src/screens/MyProfileScreen';
+import { AboutScreen } from './src/screens/AboutScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { NameSetupScreen } from './src/screens/NameSetupScreen';
@@ -63,8 +64,9 @@ function SettingsStackScreen() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="SettingsHome" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="SettingsHome" component={SettingsScreen} options={{ title: 'Ruju Quran' }} />
       <Stack.Screen name="MyProfile" component={MyProfileScreen} options={{ title: 'My Profile' }} />
+      <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
     </Stack.Navigator>
   );
 }

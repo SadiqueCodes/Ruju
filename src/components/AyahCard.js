@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getThemeColors } from '../theme';
-import { cleanArabicText, cleanBodyText } from '../utils/textCleaner';
+import { cleanArabicText, cleanBodyText, isContinuationMarkerLine } from '../utils/textCleaner';
 import { useAppState } from '../state/AppState';
 
 function normalizeBodyDisplay(value) {
@@ -72,6 +72,7 @@ function normalizeTafseerDisplay(value) {
     .map((line) => line.replace(/^\*+\s+/g, (m) => m.trimEnd()))
     .map((line) => line.replace(/\s*\*+\s*\]$/g, '*]'))
     .map((line) => line.trim())
+    .filter((line) => !isContinuationMarkerLine(line))
     .filter((line) => !isDecorativeOnly(line))
     .filter(Boolean);
 

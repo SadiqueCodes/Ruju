@@ -50,3 +50,11 @@ export function cleanArabicText(value) {
 export function cleanBodyText(value) {
   return cleanBase(value);
 }
+
+export function isContinuationMarkerLine(value) {
+  const line = String(value || '').trim();
+  if (!line) return false;
+  if (/\bto\s*be\s*continued\b/i.test(line)) return true;
+  if (/\bdescription\s*part\s*[:\-]?\s*\d+\b/i.test(line)) return true;
+  return false;
+}

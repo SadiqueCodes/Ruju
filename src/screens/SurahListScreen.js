@@ -1,18 +1,24 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { SurahCard } from '../components/SurahCard';
 import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 import { filterSurahs } from '../utils/quranData';
 
 export function SurahListScreen({ navigation }) {
-  const { surahs, lastRead, themeMode } = useAppState();
+  const { surahs, lastRead, themeMode, refreshAyahData } = useAppState();
   const colors = getThemeColors(themeMode);
   const isLight = themeMode === 'light';
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => filterSurahs(surahs, query), [surahs, query]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshAyahData();
+    }, [refreshAyahData])
+  );
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['bottom']}>
@@ -145,3 +151,4 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
+

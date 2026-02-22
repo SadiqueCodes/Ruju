@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "version": ">= 16.23.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://pjnbgasngeqwitxzzsag.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbmJnYXNuZ2Vxd2l0eHp6c2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMjU0MzAsImV4cCI6MjA4NjkwMTQzMH0.rvUC-IgpCCYeKSNZn6JPCyLPQT3dKZSLzsi66x21TPg"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://pjnbgasngeqwitxzzsag.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbmJnYXNuZ2Vxd2l0eHp6c2FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMjU0MzAsImV4cCI6MjA4NjkwMTQzMH0.rvUC-IgpCCYeKSNZn6JPCyLPQT3dKZSLzsi66x21TPg"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  }
+}

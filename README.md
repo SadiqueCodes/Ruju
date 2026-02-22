@@ -11,6 +11,7 @@ A dark-themed Quran reading app with Quran reader + community feed.
 - Splash screen + first-time display name setup
 - Community feed (1:1 square text posts, likes, comments)
 - Supabase-backed feed storage (posts, likes, comments)
+- Supabase-backed Quran ayah sync with local JSON fallback
 
 ## Run App
 
@@ -88,8 +89,10 @@ alter table public.feed_comment_replies enable row level security;
 
 drop policy if exists "feed_posts_select" on public.feed_posts;
 drop policy if exists "feed_posts_insert" on public.feed_posts;
+drop policy if exists "feed_posts_delete" on public.feed_posts;
 create policy "feed_posts_select" on public.feed_posts for select using (true);
 create policy "feed_posts_insert" on public.feed_posts for insert with check (true);
+create policy "feed_posts_delete" on public.feed_posts for delete using (true);
 
 drop policy if exists "feed_likes_select" on public.feed_likes;
 drop policy if exists "feed_likes_insert" on public.feed_likes;
@@ -115,6 +118,55 @@ drop policy if exists "feed_comment_replies_insert" on public.feed_comment_repli
 create policy "feed_comment_replies_select" on public.feed_comment_replies for select using (true);
 create policy "feed_comment_replies_insert" on public.feed_comment_replies for insert with check (true);
 ```
+
+## Quran Ayahs Backend (Supabase)
+
+Run SQL file:
+
+```bash
+supabase/ayahs_admin.sql
+```
+
+This creates:
+- `public.ayahs` table (unique by `surah_number + ayah_number`)
+- indexes + `updated_at` trigger
+- read policy for app users
+- write policies for authenticated admin users
+
+## Admin Panel (Web)
+
+Folder: `ruju-admin-panel/`
+
+Purpose:
+- Paste full Telegram post text and auto-parse into ayah rows
+- Quality checks before upload (missing arabic/translation/tafseer, duplicates, invalid keys)
+- Import full JSON file and upsert in one step
+- Manual single-ayah add/update form
+- Upsert directly to `public.ayahs`
+- Upload history log (who uploaded, source type, row count, summary)
+
+How to run:
+
+```bash
+npm run admin:install
+npm run admin:dev
+```
+
+Open:
+
+```text
+http://localhost:5174
+```
+
+Use:
+1. Enter Supabase URL + anon key
+2. Sign in with an admin email/password (Supabase Auth user)
+3. Paste Telegram post and click `Parse`
+4. Review quality summary + preview and click `Upsert Parsed Ayahs`
+5. Or import a JSON file (`array` or `{ "rows": [...] }`) and click `Import JSON to Supabase`
+6. Check upload history section for audit trail
+
+The mobile app automatically fetches ayahs from Supabase and merges with local `ayahs_formatted.json`.
 
 ## Data Shape (Quran)
 
