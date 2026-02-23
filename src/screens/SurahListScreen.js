@@ -1,32 +1,40 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { SurahCard } from '../components/SurahCard';
-import { COLORS } from '../theme';
+import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 import { filterSurahs } from '../utils/quranData';
 
 export function SurahListScreen({ navigation }) {
-  const { surahs, lastRead } = useAppState();
+  const { surahs, lastRead, themeMode, refreshAyahData } = useAppState();
+  const colors = getThemeColors(themeMode);
+  const isLight = themeMode === 'light';
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => filterSurahs(surahs, query), [surahs, query]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshAyahData();
+    }, [refreshAyahData])
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <View style={styles.bgBlobA} />
-      <View style={styles.bgBlobB} />
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['bottom']}>
+      <View style={[styles.bgBlobA, { backgroundColor: colors.blobA }]} />
+      <View style={[styles.bgBlobB, { backgroundColor: colors.blobB }]} />
 
       <View style={styles.container}>
-        <Text style={styles.kicker}>Ruju Quran</Text>
-        <Text style={styles.heading}>All Surahs</Text>
+        <Text style={[styles.kicker, { color: colors.gold }]}>Ruju Quran</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>All Surahs</Text>
 
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search surah name or number"
-          placeholderTextColor={COLORS.muted}
-          style={styles.input}
+          placeholderTextColor={colors.muted}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: isLight ? '#F1F5FC' : '#0E1526', color: colors.text }]}
         />
 
         {lastRead ? (
@@ -36,12 +44,13 @@ export function SurahListScreen({ navigation }) {
                 surahNumber: lastRead.surah_number,
                 surahName: lastRead.surah_name,
                 initialAyah: lastRead.ayah_number,
+                jumpAt: Date.now(),
               })
             }
-            style={styles.resumeCard}
+            style={[styles.resumeCard, { borderColor: isLight ? '#B7CAE8' : '#355179', backgroundColor: isLight ? '#EAF2FF' : '#0E1C36' }]}
           >
-            <Text style={styles.resumeLabel}>Continue Reading</Text>
-            <Text style={styles.resumeValue}>
+            <Text style={[styles.resumeLabel, { color: colors.accent }]}>Continue Reading</Text>
+            <Text style={[styles.resumeValue, { color: colors.text }]}> 
               {lastRead.surah_name} - Ayah {lastRead.ayah_number}
             </Text>
           </Pressable>
@@ -54,6 +63,7 @@ export function SurahListScreen({ navigation }) {
           renderItem={({ item }) => (
             <SurahCard
               surah={item}
+              themeMode={themeMode}
               onPress={() =>
                 navigation.navigate('Reader', {
                   surahNumber: item.surah_number,
@@ -62,7 +72,7 @@ export function SurahListScreen({ navigation }) {
               }
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No surah found.</Text>}
+          ListEmptyComponent={<Text style={[styles.empty, { color: colors.muted }]}>No surah found.</Text>}
         />
       </View>
     </SafeAreaView>
@@ -72,7 +82,6 @@ export function SurahListScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   container: {
     flex: 1,
@@ -84,7 +93,6 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: COLORS.blobA,
     opacity: 0.18,
     top: -70,
     right: -50,
@@ -94,20 +102,17 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: COLORS.blobB,
     opacity: 0.14,
     bottom: -120,
     left: -80,
   },
   kicker: {
-    color: COLORS.gold,
     fontSize: 12,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     fontWeight: '700',
   },
   heading: {
-    color: COLORS.text,
     fontSize: 28,
     fontWeight: '800',
     marginTop: 2,
@@ -115,31 +120,24 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border,
     borderRadius: 14,
-    backgroundColor: '#0E1526',
-    color: COLORS.text,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10,
   },
   resumeCard: {
     borderWidth: 1,
-    borderColor: '#355179',
-    backgroundColor: '#0E1C36',
     padding: 12,
     borderRadius: 14,
     marginBottom: 12,
   },
   resumeLabel: {
-    color: COLORS.accent,
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     fontWeight: '700',
   },
   resumeValue: {
-    color: COLORS.text,
     marginTop: 4,
     fontSize: 15,
     fontWeight: '600',
@@ -149,8 +147,8 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   empty: {
-    color: COLORS.muted,
     textAlign: 'center',
     marginTop: 20,
   },
 });
+

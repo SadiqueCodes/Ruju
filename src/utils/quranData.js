@@ -31,6 +31,16 @@ export function buildQuranIndex(ayahRows) {
     if (surah) surah.ayah_count = rows.length;
   }
 
+  // Keep Surah 1 visible in list even if data is not imported yet.
+  if (!surahMap.has(1)) {
+    surahMap.set(1, {
+      surah_number: 1,
+      surah_name: 'Al-Fatihah',
+      ayah_count: 0,
+    });
+    ayahsBySurah[1] = [];
+  }
+
   const surahs = Array.from(surahMap.values()).sort((a, b) => a.surah_number - b.surah_number);
 
   return { surahs, ayahsBySurah, ayahByKey };

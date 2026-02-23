@@ -5,12 +5,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { AppStateProvider, useAppState } from './src/state/AppState';
-import { COLORS } from './src/theme';
+import { getThemeColors } from './src/theme';
 import { SurahListScreen } from './src/screens/SurahListScreen';
 import { ReaderScreen } from './src/screens/ReaderScreen';
 import { BookmarksScreen } from './src/screens/BookmarksScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { MyProfileScreen } from './src/screens/MyProfileScreen';
+import { AboutScreen } from './src/screens/AboutScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { NameSetupScreen } from './src/screens/NameSetupScreen';
@@ -18,25 +21,26 @@ import { NameSetupScreen } from './src/screens/NameSetupScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const navTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: COLORS.bg,
-    card: COLORS.card,
-    text: COLORS.text,
-    border: COLORS.border,
-    primary: COLORS.gold,
-  },
-};
+function tabIcon(name, label, focused, colors) {
+  return (
+    <>
+      <Ionicons name={name} size={18} color={focused ? colors.gold : colors.muted} />
+      <Text style={{ color: focused ? colors.gold : colors.muted, fontSize: 10, fontWeight: '700', marginTop: 2 }}>
+        {label}
+      </Text>
+    </>
+  );
+}
 
-function HomeStack() {
+function HomeStackScreen() {
+  const { themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.bg },
-        headerTintColor: COLORS.text,
-        contentStyle: { backgroundColor: COLORS.bg },
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.text,
+        contentStyle: { backgroundColor: colors.bg },
       }}
     >
       <Stack.Screen name="Surahs" component={SurahListScreen} options={{ title: 'Ruju Quran' }} />
@@ -49,17 +53,40 @@ function HomeStack() {
   );
 }
 
-function tabIcon(label, focused) {
+function SettingsStackScreen() {
+  const { themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
   return (
-    <Text style={{ color: focused ? COLORS.gold : COLORS.muted, fontSize: 11, fontWeight: '700' }}>
-      {label}
-    </Text>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.text,
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
+      <Stack.Screen name="SettingsHome" component={SettingsScreen} options={{ title: 'Ruju Quran' }} />
+      <Stack.Screen name="MyProfile" component={MyProfileScreen} options={{ title: 'My Profile' }} />
+      <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
+    </Stack.Navigator>
   );
 }
 
 function AppShell() {
-  const { isHydrated, hasProfileName, setProfileName } = useAppState();
+  const { isHydrated, hasProfileName, setProfileSetup, themeMode } = useAppState();
   const [showSplash, setShowSplash] = useState(true);
+  const colors = getThemeColors(themeMode);
+
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: colors.bg,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.gold,
+    },
+  };
 
   useEffect(() => {
     const id = setTimeout(() => setShowSplash(false), 1500);
@@ -67,17 +94,17 @@ function AppShell() {
   }, []);
 
   if (showSplash || !isHydrated) return <SplashScreen />;
-  if (!hasProfileName) return <NameSetupScreen onSubmit={setProfileName} />;
+  if (!hasProfileName) return <NameSetupScreen onSubmit={setProfileSetup} />;
 
   return (
     <NavigationContainer theme={navTheme}>
-      <StatusBar style="light" />
+      <StatusBar style={themeMode === 'light' ? 'dark' : 'light'} />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: COLORS.card,
-            borderTopColor: COLORS.border,
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
             height: 62,
             paddingBottom: 8,
             paddingTop: 8,
@@ -86,23 +113,23 @@ function AppShell() {
       >
         <Tab.Screen
           name="Home"
-          component={HomeStack}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('HOME', focused), tabBarLabel: () => null }}
+          component={HomeStackScreen}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('home-outline', 'HOME', focused, colors), tabBarLabel: () => null }}
         />
         <Tab.Screen
           name="Feed"
           component={FeedScreen}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('FEED', focused), tabBarLabel: () => null }}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('newspaper-outline', 'FEED', focused, colors), tabBarLabel: () => null }}
         />
         <Tab.Screen
           name="Bookmarks"
           component={BookmarksScreen}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('SAVE', focused), tabBarLabel: () => null }}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('bookmark-outline', 'SAVE', focused, colors), tabBarLabel: () => null }}
         />
         <Tab.Screen
           name="Settings"
-          component={SettingsScreen}
-          options={{ tabBarIcon: ({ focused }) => tabIcon('SET', focused), tabBarLabel: () => null }}
+          component={SettingsStackScreen}
+          options={{ tabBarIcon: ({ focused }) => tabIcon('settings-outline', 'SET', focused, colors), tabBarLabel: () => null }}
         />
       </Tab.Navigator>
     </NavigationContainer>

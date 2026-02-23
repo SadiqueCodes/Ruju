@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import argparse
 import json
 import re
@@ -49,6 +50,62 @@ def clean_text(value: str) -> str:
     return value.strip()
 
 
+def normalize_tafseer_flow(value: str) -> str:
+    text = clean_text(value)
+    if not text:
+        return ""
+
+    raw_lines = [line.rstrip() for line in text.split("\n")]
+    paragraphs: list[str] = []
+    current: list[str] = []
+
+    bullet_start = re.compile(r"^\s*([🔸🔹🔺🔻🔅🔆📖📚♦️❇️⭐🌸🌼🌷•▪\-]|\d+\.)")
+    sentence_end = re.compile(r"[.!?۔؟:;*]$|[\)\]\}][.!?۔؟:;]?$")
+    protected_line = re.compile(r"^\s*(📖|📚|{.*}|[\[\(].*[\]\)]\s*$)")
+    continuation_marker = re.compile(
+        r"(?i)\b(to\s*be\s*continued|description\s*part\s*\d+|part\s*\d+\s*description|in\s*shaa?\s*allah.*next\s*post)\b"
+    )
+
+    def flush_current() -> None:
+        if not current:
+            return
+        paragraphs.append(" ".join(part.strip() for part in current if part.strip()))
+        current.clear()
+
+    for raw in raw_lines:
+        line = raw.strip()
+        if not line:
+            flush_current()
+            continue
+
+        # Drop cross-post continuation markers from final tafseer body.
+        if continuation_marker.search(line):
+            flush_current()
+            continue
+
+        if not current:
+            current.append(line)
+            continue
+
+        prev = current[-1].strip()
+
+        if bullet_start.match(line) or protected_line.match(line):
+            flush_current()
+            current.append(line)
+            continue
+
+        if sentence_end.search(prev):
+            flush_current()
+            current.append(line)
+            continue
+
+        # Continue the same sentence across wrapped Telegram lines.
+        current[-1] = f"{prev} {line}".strip()
+
+    flush_current()
+    return clean_text("\n\n".join(paragraphs))
+
+
 def flatten_text(text_value) -> str:
     if isinstance(text_value, str):
         return text_value
@@ -89,6 +146,16 @@ def is_valid_ayah_header(text: str, match: re.Match) -> bool:
     return re.search(r"[A-Za-z0-9]", prefix) is None
 
 
+def is_primary_arabic_line(line: str) -> bool:
+    text = (line or "").strip()
+    if not text:
+        return False
+    if re.search(r"[A-Za-z]", text):
+        return False
+    arabic_chars = re.findall(r"[\u0600-\u06FF]", text)
+    return len(arabic_chars) >= 6
+
+
 def extract_arabic_lines(section: str) -> list[str]:
     lines = []
     for raw_line in section.split("\n"):
@@ -97,11 +164,137 @@ def extract_arabic_lines(section: str) -> list[str]:
             continue
         if re.search(r"(?i)ayat|aayat|surah|surat", line):
             continue
-        if re.search(r"[\u0600-\u06FF]|[ØÙÛ]", line):
+        if is_primary_arabic_line(line):
             cleaned = line.strip("*_ -•▪️\t")
             if cleaned:
                 lines.append(cleaned)
     return lines
+
+
+def extract_translations(section: str) -> tuple[list[str], list[str]]:
+    translations: list[str] = []
+    removals: list[str] = []
+    seen: set[str] = set()
+
+    patterns = [
+        re.compile(r'["“]([^"\n”]{15,})["”]'),
+        re.compile(r'_([^_\n]{15,})_'),
+    ]
+
+    for pattern in patterns:
+        for match in pattern.finditer(section):
+            candidate = clean_text(match.group(1))
+            if not candidate:
+                continue
+            key = re.sub(r"\s+", " ", candidate).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            translations.append(candidate)
+            removals.append(match.group(0))
+
+    # Intentionally avoid a generic fallback that grabs the first long non-Arabic line.
+    # That fallback can consume explanatory tafseer lines (e.g. word-meaning notes).
+
+    return translations, removals
+
+
+def record_quality(row: dict) -> int:
+    score = 0
+    if (row.get("arabic_text") or "").strip():
+        score += 2
+    if (row.get("translation") or "").strip():
+        score += 2
+    if (row.get("tafseer") or "").strip():
+        score += 1
+    return score
+
+
+def _norm_compare_text(value: str) -> str:
+    return re.sub(r"\s+", " ", clean_text(value)).strip().lower()
+
+
+def _pick_richer_text(first: str, second: str) -> str:
+    a = clean_text(first)
+    b = clean_text(second)
+    if not a:
+        return b
+    if not b:
+        return a
+    a_norm = _norm_compare_text(a)
+    b_norm = _norm_compare_text(b)
+    if a_norm == b_norm:
+        return a if len(a) >= len(b) else b
+    if a_norm in b_norm:
+        return b
+    if b_norm in a_norm:
+        return a
+    return a if len(a) >= len(b) else b
+
+
+def _append_unique_tafseer(existing_tafseer: str, new_tafseer: str, same_source: bool) -> str:
+    a = normalize_tafseer_flow(existing_tafseer)
+    b = normalize_tafseer_flow(new_tafseer)
+    if not a:
+        return b
+    if not b:
+        return a
+
+    a_norm = _norm_compare_text(a)
+    b_norm = _norm_compare_text(b)
+
+    if a_norm == b_norm:
+        return a if len(a) >= len(b) else b
+    if a_norm in b_norm:
+        return b
+    if b_norm in a_norm:
+        return a
+
+    # For duplicate parses from the same source post, avoid noisy concatenation.
+    if same_source:
+        return a if len(a) >= len(b) else b
+
+    return normalize_tafseer_flow(f"{a}\n\n{b}")
+
+
+def merge_rows(existing: dict, candidate: dict) -> dict:
+    existing_source = existing.get("source_post_id")
+    candidate_source = candidate.get("source_post_id")
+    same_source = (
+        existing_source is not None
+        and candidate_source is not None
+        and str(existing_source) == str(candidate_source)
+    )
+
+    merged = dict(existing)
+    merged["surah_name"] = existing.get("surah_name") or candidate.get("surah_name") or existing.get("surah_name")
+    merged["juz_number"] = existing.get("juz_number") or candidate.get("juz_number")
+    merged["arabic_text"] = _pick_richer_text(existing.get("arabic_text", ""), candidate.get("arabic_text", ""))
+    merged["translation"] = _pick_richer_text(existing.get("translation", ""), candidate.get("translation", ""))
+
+    # Preserve chronological flow when appending continuation tafseer across posts.
+    if not same_source:
+        if isinstance(existing_source, int) and isinstance(candidate_source, int) and candidate_source < existing_source:
+            first_tafseer = candidate.get("tafseer", "")
+            second_tafseer = existing.get("tafseer", "")
+        else:
+            first_tafseer = existing.get("tafseer", "")
+            second_tafseer = candidate.get("tafseer", "")
+        merged["tafseer"] = _append_unique_tafseer(first_tafseer, second_tafseer, same_source=False)
+    else:
+        merged["tafseer"] = _append_unique_tafseer(
+            existing.get("tafseer", ""),
+            candidate.get("tafseer", ""),
+            same_source=True,
+        )
+
+    # Keep earliest source post id for traceability of first capture.
+    if isinstance(existing_source, int) and isinstance(candidate_source, int):
+        merged["source_post_id"] = min(existing_source, candidate_source)
+    else:
+        merged["source_post_id"] = existing_source or candidate_source
+
+    return merged
 
 
 def build_records(payload: dict) -> tuple[list[dict], dict]:
@@ -171,22 +364,29 @@ def build_records(payload: dict) -> tuple[list[dict], dict]:
                 continue
 
             arabic_lines = extract_arabic_lines(section)
-            quote_matches = list(RX_QUOTE.finditer(section))
-            translations = [q.group(1).strip() for q in quote_matches if q.group(1).strip()]
+            has_primary_arabic = len(arabic_lines) > 0
+            if has_primary_arabic:
+                translations, translation_spans = extract_translations(section)
+            else:
+                translations, translation_spans = [], []
 
             tafseer = section
-            for arab_line in arabic_lines:
+            # Remove only the primary ayah Arabic lines, not every Arabic-script line.
+            # This preserves glossary/meaning fragments inside tafseer.
+            arabic_spans_to_remove = min(len(arabic_lines), len(ayah_numbers))
+            for arab_line in arabic_lines[:arabic_spans_to_remove]:
                 tafseer = re.sub(re.escape(arab_line), "", tafseer, count=1)
-            for q in quote_matches:
-                tafseer = re.sub(re.escape(q.group(0)), "", tafseer, count=1)
-            tafseer = clean_text(tafseer)
+            # Only remove the leading translation span(s) mapped to this ayah block.
+            # Keep later quoted/underscored lines as part of tafseer (e.g. reference quotes).
+            if has_primary_arabic:
+                spans_to_remove = min(len(translation_spans), len(ayah_numbers))
+                for span in translation_spans[:spans_to_remove]:
+                    tafseer = re.sub(re.escape(span), "", tafseer, count=1)
+            tafseer = normalize_tafseer_flow(tafseer)
 
             for i, ayah_number in enumerate(ayah_numbers):
                 key = f"{current_surah}|{ayah_number}"
-                if key in records:
-                    continue
-
-                records[key] = {
+                candidate = {
                     "surah_number": current_surah,
                     "surah_name": current_name or f"Surah {current_surah}",
                     "juz_number": get_juz(current_surah, ayah_number),
@@ -196,6 +396,14 @@ def build_records(payload: dict) -> tuple[list[dict], dict]:
                     "tafseer": tafseer,
                     "source_post_id": msg.get("id"),
                 }
+
+                existing = records.get(key)
+                if not existing:
+                    records[key] = candidate
+                    continue
+
+                # Merge duplicates across continuation posts and richer re-parses.
+                records[key] = merge_rows(existing, candidate)
 
     rows = sorted(records.values(), key=lambda item: (item["surah_number"], item["ayah_number"], item.get("source_post_id") or 0))
 
