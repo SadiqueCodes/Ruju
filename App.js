@@ -17,6 +17,7 @@ import { AboutScreen } from './src/screens/AboutScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { NameSetupScreen } from './src/screens/NameSetupScreen';
+import { TasbeehScreen } from './src/screens/TasbeehScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -49,6 +50,7 @@ function HomeStackScreen() {
         component={ReaderScreen}
         options={({ route }) => ({ title: route.params?.surahName || 'Reader' })}
       />
+      <Stack.Screen name="Tasbeeh" component={TasbeehScreen} options={{ title: 'Digital Tasbeeh' }} />
     </Stack.Navigator>
   );
 }
