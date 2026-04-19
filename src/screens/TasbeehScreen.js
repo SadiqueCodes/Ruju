@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,23 +12,29 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getThemeColors } from '../theme';
+import { useAppState } from '../state/AppState';
 
-import Panda from '../../frames/panda-svgrepo-com.svg';
 import FlowerA from '../../frames/flower-svgrepo-com (3).svg';
 import FlowerB from '../../frames/flower-svgrepo-com (4).svg';
-import ManB from '../../frames/man-muslim-svgrepo-com (3).svg';
+import MoonSvg from '../../frames/moon-svgrepo-com.svg';
+import SunSvg from '../../frames/sun-svgrepo-com.svg';
 
 const STYLE_OPTIONS = [
-  { id: 'panda', label: 'Panda', Icon: Panda },
-  { id: 'cute', label: 'Cute', Icon: ManB },
   { id: 'flower', label: 'Flower', Icon: FlowerA },
   { id: 'floral', label: 'Floral', Icon: FlowerB },
+  { id: 'moon', label: 'Moon', Icon: MoonSvg },
+  { id: 'sun', label: 'Sun', Icon: SunSvg },
 ];
 
 export function TasbeehScreen() {
+  const { themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
+  const isLight = themeMode === 'light';
   const [count, setCount] = useState(0);
   const [limitInput, setLimitInput] = useState('');
   const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0].id);
+  const pressScale = useRef(new Animated.Value(1)).current;
 
   const limitValue = useMemo(() => {
     const parsed = Number(limitInput.replace(/[^0-9]/g, ''));
@@ -45,46 +52,79 @@ export function TasbeehScreen() {
 
   const reset = () => setCount(0);
 
+  const onCounterPressIn = () => {
+    Animated.spring(pressScale, {
+      toValue: 0.96,
+      tension: 220,
+      friction: 16,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const onCounterPressOut = () => {
+    Animated.spring(pressScale, {
+      toValue: 1,
+      tension: 180,
+      friction: 14,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: '#F6F5F8' }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
       <ScrollView
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.countText}>{displayCount}</Text>
-        <Pressable
-          onPress={increment}
-          style={({ pressed }) => [
-            styles.avatarCircle,
-            pressed ? styles.avatarCirclePressed : null,
-          ]}
-        >
-          <View style={styles.avatarInner}>
-            {activeStyle?.Icon ? <activeStyle.Icon width={140} height={140} /> : null}
-          </View>
+        <Text style={[styles.countText, { color: colors.text }]}>{displayCount}</Text>
+        <Pressable onPress={increment} onPressIn={onCounterPressIn} onPressOut={onCounterPressOut}>
+          <Animated.View
+            style={[
+              styles.avatarCircle,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                shadowOpacity: isLight ? 0.12 : 0.25,
+                transform: [{ scale: pressScale }],
+              },
+            ]}
+          >
+            <View style={styles.avatarInner}>
+              {activeStyle?.Icon ? <activeStyle.Icon width={140} height={140} /> : null}
+            </View>
+          </Animated.View>
         </Pressable>
 
         <KeyboardAvoidingView behavior={Platform.select({ ios: 'padding', default: 'height' })} style={styles.controls}>
           <View style={styles.actionsRow}>
-            <Pressable onPress={reset} style={styles.actionButton}>
-              <Ionicons name="refresh" size={18} color="#1F1F1F" />
-              <Text style={styles.actionText}>Reset</Text>
+            <Pressable
+              onPress={reset}
+              style={[
+                styles.actionButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Ionicons name="refresh" size={18} color={colors.text} />
+              <Text style={[styles.actionText, { color: colors.text }]}>Reset</Text>
             </Pressable>
 
             <TextInput
               value={limitInput}
               onChangeText={setLimitInput}
               placeholder="Limit (optional)"
-              placeholderTextColor="#9D9AA9"
+              placeholderTextColor={colors.muted}
               keyboardType="number-pad"
-              style={styles.limitInput}
+              style={[
+                styles.limitInput,
+                { backgroundColor: colors.card, color: colors.text, borderColor: colors.border },
+              ]}
             />
           </View>
         </KeyboardAvoidingView>
 
         <View style={styles.stylesRow}>
-          <Text style={styles.stylesLabel}>Counter Style</Text>
+          <Text style={[styles.stylesLabel, { color: colors.muted }]}>Counter Style</Text>
           <View style={styles.styleChips}>
             {STYLE_OPTIONS.map((option) => (
               <Pressable
@@ -92,7 +132,10 @@ export function TasbeehScreen() {
                 onPress={() => setSelectedStyle(option.id)}
                 style={[
                   styles.styleChip,
-                  selectedStyle === option.id ? styles.styleChipActive : styles.styleChipInactive,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: selectedStyle === option.id ? colors.gold : colors.border,
+                  },
                 ]}
               >
                 <View style={styles.styleIconWrap}>
@@ -101,7 +144,7 @@ export function TasbeehScreen() {
                 <Text
                   style={[
                     styles.styleLabel,
-                    selectedStyle === option.id ? styles.styleLabelActive : styles.styleLabelInactive,
+                    { color: selectedStyle === option.id ? colors.text : colors.muted },
                   ]}
                 >
                   {option.label}
@@ -126,10 +169,11 @@ const styles = StyleSheet.create({
     paddingBottom: 26,
   },
   countText: {
-    fontSize: 78,
+    fontSize: 68,
     fontWeight: '800',
     color: '#1D1D20',
-    marginBottom: 12,
+    marginBottom: 8,
+    marginTop: -4,
   },
   avatarCircle: {
     width: 220,
@@ -147,11 +191,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 15 },
     elevation: 4,
     flexDirection: 'column',
-    gap: 4,
-    paddingTop: 16,
-  },
-  avatarCirclePressed: {
-    transform: [{ scale: 0.96 }],
+    gap: 0,
+    paddingTop: 0,
   },
   avatarInner: {
     width: 176,
@@ -159,6 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
   },
   controls: {
     width: '100%',
@@ -166,7 +208,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     gap: 12,
     width: '100%',
   },
@@ -178,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#fff',
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -193,9 +235,9 @@ const styles = StyleSheet.create({
   limitInput: {
     flex: 0.55,
     borderRadius: 16,
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
     fontWeight: '600',
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -215,7 +257,9 @@ const styles = StyleSheet.create({
   },
   styleChips: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 10,
   },
   styleChip: {
     width: 70,
@@ -224,14 +268,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    backgroundColor: '#fff',
     borderWidth: 1.3,
-  },
-  styleChipActive: {
-    borderColor: '#cfa65f',
-  },
-  styleChipInactive: {
-    borderColor: '#e3e1e7',
   },
   styleIconWrap: {
     width: 44,
@@ -242,11 +279,5 @@ const styles = StyleSheet.create({
   styleLabel: {
     fontSize: 10,
     fontWeight: '700',
-  },
-  styleLabelActive: {
-    color: '#1c1c20',
-  },
-  styleLabelInactive: {
-    color: '#9d9aa9',
   },
 });

@@ -11,7 +11,6 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -84,14 +83,6 @@ const DEFAULT_POST_META = {
   textScale: 1.0,
 };
 
-const TEXT_FIT_OPTIONS = [
-  { key: 'xs', label: 'XS', scale: 0.32 },
-  { key: 's', label: 'S', scale: 0.45 },
-  { key: 'm', label: 'M', scale: 0.58 },
-  { key: 'l', label: 'L', scale: 0.72 },
-  { key: 'xl', label: 'XL', scale: 1.0 },
-];
-
 function ago(iso) {
   if (!iso) return '';
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -135,22 +126,6 @@ function buildTextStyle(baseStyle, text, userScale, textColor) {
     lineHeight: Math.round(baseLine * mergedScale),
     letterSpacing: baseLetterSpacing ? Number((baseLetterSpacing * mergedScale).toFixed(2)) : 0,
   };
-}
-
-function encodeStyledContent(meta, text) {
-  const safeMeta = {
-    styleKey: (meta?.styleKey || DEFAULT_POST_META.styleKey).toLowerCase(),
-    frameKey: (meta?.frameKey || DEFAULT_POST_META.frameKey).toLowerCase(),
-    textColor: normalizeHexColor(meta?.textColor),
-    textScale: clamp(Number(meta?.textScale) || 1, 0.45, 1.6),
-  };
-  const packed = [
-    `style=${safeMeta.styleKey}`,
-    `frame=${safeMeta.frameKey}`,
-    `color=${safeMeta.textColor}`,
-    `scale=${safeMeta.textScale.toFixed(2)}`,
-  ].join(';');
-  return `[[post:${packed}]]\n${text}`;
 }
 
 function parseStyledContent(raw) {
@@ -381,19 +356,12 @@ export function FeedScreen() {
   const colors = getThemeColors(themeMode);
   const isLight = themeMode === 'light';
   const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false);
   const [posts, setPosts] = useState([]);
   const [likesByPost, setLikesByPost] = useState({});
   const [commentsByPost, setCommentsByPost] = useState({});
   const [commentLikesById, setCommentLikesById] = useState({});
   const [repliesByComment, setRepliesByComment] = useState({});
   const [expandedRepliesByComment, setExpandedRepliesByComment] = useState({});
-
-  const [postModalMounted, setPostModalMounted] = useState(false);
-  const [compose, setCompose] = useState('');
-  const [composeStyleKey, setComposeStyleKey] = useState('serif');
-  const [composeFrameKey, setComposeFrameKey] = useState('plain');
-  const [composeTextScale, setComposeTextScale] = useState(1.0);
 
   const [commentModalMounted, setCommentModalMounted] = useState(false);
   const [activePost, setActivePost] = useState(null);
@@ -408,7 +376,6 @@ export function FeedScreen() {
   const [savedToast, setSavedToast] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
-  const postAnim = useRef(new Animated.Value(0)).current;
   const commentAnim = useRef(new Animated.Value(0)).current;
   const captureRefs = useRef({});
 
@@ -565,37 +532,6 @@ export function FeedScreen() {
     return () => clearInterval(id);
   }, [posts, checkInternet]);
 
-  const canPost = useMemo(() => !!compose.trim() && !!profileName, [compose, profileName]);
-  const composeStyle = useMemo(() => getStyle(composeStyleKey), [composeStyleKey]);
-  const composeFrame = useMemo(() => getFrame(composeFrameKey), [composeFrameKey]);
-  const composeFrameTextLayout = useMemo(() => getFrameTextLayout(composeFrame.key), [composeFrame.key]);
-  const composeInputTextStyle = useMemo(() => {
-    return {
-      fontFamily: composeStyle.textStyle?.fontFamily,
-      fontStyle: composeStyle.textStyle?.fontStyle,
-      fontWeight: composeStyle.textStyle?.fontWeight,
-      textTransform: composeStyle.textStyle?.textTransform,
-      color: colors.text,
-    };
-  }, [composeStyle.textStyle, colors.text]);
-  const composePreviewTextStyle = useMemo(
-    () => buildTextStyle(composeStyle.textStyle, compose, composeTextScale, DEFAULT_POST_META.textColor),
-    [composeStyle.textStyle, compose, composeTextScale]
-  );
-
-  function openPostModal() {
-    setPostModalMounted(true);
-    requestAnimationFrame(() => {
-      Animated.timing(postAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    });
-  }
-
-  function closePostModal() {
-    Animated.timing(postAnim, { toValue: 0, duration: 170, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
-      if (finished) setPostModalMounted(false);
-    });
-  }
-
   function openCommentModal(post) {
     setActivePost(post);
     setReplyTarget(null);
@@ -615,38 +551,6 @@ export function FeedScreen() {
         setExpandedRepliesByComment({});
       }
     });
-  }
-
-  async function createPost() {
-    if (!canPost || !supabase) return;
-    setPosting(true);
-
-    const payload = {
-      author_name: profileName,
-      content: encodeStyledContent(
-        {
-          styleKey: composeStyleKey,
-          frameKey: composeFrameKey,
-          textColor: DEFAULT_POST_META.textColor,
-          textScale: composeTextScale,
-        },
-        compose.trim()
-      ),
-      author_device_id: deviceId,
-    };
-
-    const insert = await supabase.from('feed_posts').insert(payload);
-    if (insert.error) {
-      await supabase.from('feed_posts').insert({ author_name: profileName, content: payload.content });
-    }
-
-    setCompose('');
-    setComposeStyleKey('serif');
-    setComposeFrameKey('plain');
-    setComposeTextScale(1.0);
-    closePostModal();
-    await loadFeed({ showLoader: false });
-    setPosting(false);
   }
 
   async function toggleLike(postId) {
@@ -796,9 +700,6 @@ export function FeedScreen() {
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={[styles.heading, { color: colors.text }]}>Feed</Text>
-          <Pressable style={[styles.newBtnShell, { backgroundColor: colors.gold }]} onPress={openPostModal}>
-            <View style={[styles.newBtnInner, { backgroundColor: themeMode === 'light' ? '#FFFFFF' : '#0F1729', borderColor: themeMode === 'light' ? '#D7C6A2' : '#4B402C' }]}><Text style={[styles.newBtnText, { color: colors.gold }]}>NEW POST</Text></View>
-          </Pressable>
         </View>
 
         {isOffline ? (
@@ -855,144 +756,6 @@ export function FeedScreen() {
           <Text style={[styles.toastText, { color: isLight ? '#1D5A39' : '#D8F8E8' }]}>Saved to gallery</Text>
         </View>
       ) : null}
-
-      <Modal visible={postModalMounted} transparent animationType="none" onRequestClose={closePostModal}>
-        <Animated.View style={[styles.overlay, { opacity: postAnim }]}> 
-          <Animated.View style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: postAnim, transform: [{ translateY: postAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>Create Post</Text>
-            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator={false}>
-              <TextInput
-                value={compose}
-                onChangeText={setCompose}
-                style={[
-                  styles.composeInput,
-                  composeInputTextStyle,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: isLight ? '#F2F6FF' : '#0E1526',
-                    color: colors.text,
-                    textAlign: 'left',
-                  },
-                ]}
-                multiline
-                maxLength={300}
-                placeholder="Write your post text"
-                placeholderTextColor={colors.muted}
-              />
-              <Text style={[styles.countText, { color: colors.muted }]}>{compose.length}/300</Text>
-
-              <Text style={[styles.sectionLabel, { color: colors.muted }]}>Font Style</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fontRow}>
-                {POST_STYLES.map((item) => (
-                  <Pressable key={item.key} onPress={() => setComposeStyleKey(item.key)} style={[styles.fontChip, { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' }, composeStyleKey === item.key && styles.fontChipActive, composeStyleKey === item.key && { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }]}>
-                    <Text style={[styles.fontChipText, { color: colors.text }, composeStyleKey === item.key && styles.fontChipTextActive, composeStyleKey === item.key && { color: colors.gold }]}>{item.label}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-
-              <Text style={[styles.sectionLabel, { color: colors.muted }]}>Frame</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.frameRow}>
-                {FRAME_OPTIONS.map((frame) => (
-                  <Pressable
-                    key={frame.key}
-                    onPress={() => setComposeFrameKey(frame.key)}
-                    style={[
-                      styles.frameChip,
-                      { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' },
-                      composeFrameKey === frame.key && { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' },
-                    ]}
-                  >
-                    {frame.source ? (
-                      <Image source={frame.source} style={styles.frameThumb} />
-                    ) : (
-                      <View style={[styles.frameThumb, styles.frameThumbPlain]} />
-                    )}
-                    <Text style={[styles.frameLabel, { color: colors.text }]}>{frame.label}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-
-              <Text style={[styles.sectionLabel, { color: colors.muted }]}>Preview</Text>
-              <View style={[styles.previewBox, { borderColor: colors.border }]}>
-                {composeFrame.source ? (
-                  <ImageBackground source={composeFrame.source} style={styles.previewSquare} imageStyle={styles.squareImage}>
-                    <View style={styles.squareTextLayer}>
-                      <View
-                        style={[
-                          styles.squareTextSafe,
-                          composeFrameTextLayout.circle && styles.squareTextSafeCircle,
-                          {
-                            width: `${composeFrameTextLayout.widthPct}%`,
-                            height: `${composeFrameTextLayout.heightPct}%`,
-                            paddingHorizontal: composeFrameTextLayout.padH,
-                            paddingVertical: composeFrameTextLayout.padV,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.previewText, composePreviewTextStyle]} numberOfLines={composeFrameTextLayout.maxLines}>
-                          {compose || 'Your post preview appears here.'}
-                        </Text>
-                      </View>
-                    </View>
-                  </ImageBackground>
-                ) : (
-                  <View style={styles.previewSquare}>
-                    <View style={styles.squareTextLayer}>
-                      <View
-                        style={[
-                          styles.squareTextSafe,
-                          composeFrameTextLayout.circle && styles.squareTextSafeCircle,
-                          {
-                            width: `${composeFrameTextLayout.widthPct}%`,
-                            height: `${composeFrameTextLayout.heightPct}%`,
-                            paddingHorizontal: composeFrameTextLayout.padH,
-                            paddingVertical: composeFrameTextLayout.padV,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.previewText, composePreviewTextStyle]} numberOfLines={composeFrameTextLayout.maxLines}>
-                          {compose || 'Your post preview appears here.'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              <Text style={[styles.sectionLabel, { color: colors.muted }]}>Fit Text</Text>
-              <View style={styles.fitChipRow}>
-                {TEXT_FIT_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.key}
-                    onPress={() => setComposeTextScale(opt.scale)}
-                    style={[
-                      styles.fitChip,
-                      { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' },
-                      Math.abs(composeTextScale - opt.scale) < 0.001 && { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.fitChipText,
-                        { color: colors.text },
-                        Math.abs(composeTextScale - opt.scale) < 0.001 && { color: colors.gold },
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
-            <View style={styles.sheetButtons}>
-              <Pressable style={[styles.sheetBtnAlt, { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : 'transparent' }]} onPress={closePostModal}><Text style={[styles.sheetBtnAltText, { color: colors.text }]}>Cancel</Text></Pressable>
-              <Pressable style={[styles.sheetBtn, (!canPost || posting) && styles.btnDisabled]} onPress={createPost} disabled={!canPost || posting}>
-                {posting ? <ActivityIndicator color="#1E1608" size="small" /> : <Text style={styles.sheetBtnText}>Post</Text>}
-              </Pressable>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
 
       <Modal visible={commentModalMounted} transparent animationType="none" onRequestClose={closeCommentModal}>
         <Animated.View

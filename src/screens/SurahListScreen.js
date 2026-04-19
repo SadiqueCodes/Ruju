@@ -8,8 +8,6 @@ import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 import { filterSurahs } from '../utils/quranData';
 
-const BISMILLAH = '\u0628\u0650\u0633\u0652\u0645\u0650 \u0671\u0644\u0644\u064e\u0651\u0670\u0647\u0650 \u0671\u0644\u0631\u064e\u0651\u062d\u0652\u0645\u064e\u0670\u0646\u0650 \u0671\u0644\u0631\u064e\u0651\u062d\u0650\u064a\u0645\u0650';
-
 export function SurahListScreen({ navigation }) {
   const { surahs, ayahsBySurah, lastRead, themeMode, refreshAyahData } = useAppState();
   const colors = getThemeColors(themeMode);
@@ -21,13 +19,14 @@ export function SurahListScreen({ navigation }) {
   const todaysAyah = useMemo(() => {
     const shortAyah = (row) => {
       const text = String(row.translation || row.tafseer || '').replace(/\s+/g, ' ').trim();
-      return text.length >= 20 && text.length <= 110;
+      return text.length >= 20 && text.length <= 180;
     };
     const rows = Object.values(ayahsBySurah || {})
       .flat()
       .filter((row) => row && row.surah_number && row.ayah_number && (row.translation || row.tafseer))
       .filter(shortAyah);
     if (!rows.length) return null;
+
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const day = Math.floor((now - start) / 86400000);
@@ -76,19 +75,11 @@ export function SurahListScreen({ navigation }) {
   const listData = useMemo(() => [{ __sticky: true }, ...filtered], [filtered]);
 
   const listHeader = (
-    <View>
-      <View style={styles.heroTopRow}>
-        <View style={styles.heroTextWrap}>
-          <Text style={[styles.heroDecor, { color: colors.muted }]}>✦ ✦ ✦</Text>
-          <Text style={[styles.heroBismillah, { color: colors.text }]}>{BISMILLAH}</Text>
-          <Text style={[styles.heroDecor, { color: colors.muted }]}>✦ ✦ ✦</Text>
-        </View>
-      </View>
-
+    <View style={styles.listHeader}>
       {todaysAyah ? (
         <Pressable style={styles.todayCard} onPress={() => openReader(todaysAyah.surah_number, todaysAyah.surah_name, todaysAyah.ayah_number)}>
           <ImageBackground
-            source={require('../../assets/redesign4/home_today_bg4.jpg')}
+            source={require('../../svgs/Gemini_Generated_Image_hml49shml49shml4.png')}
             style={styles.todayBg}
             imageStyle={styles.todayBgImage}
             blurRadius={1}
@@ -184,7 +175,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 0,
+  },
+  listHeader: {
+    paddingTop: 6,
   },
   bgBlobA: {
     position: 'absolute',
@@ -204,32 +198,6 @@ const styles = StyleSheet.create({
     bottom: -120,
     left: -80,
   },
-  heroTopRow: {
-    marginTop: 8,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  heroTextWrap: {
-    flex: 1,
-    paddingRight: 0,
-    alignItems: 'center',
-  },
-  heroDecor: {
-    fontSize: 11,
-    letterSpacing: 3,
-    marginBottom: 1,
-  },
-  heroBismillah: {
-    marginTop: 0,
-    fontSize: 25,
-    lineHeight: 35,
-    fontFamily: TODAY_BODY_FONT,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   todayCard: {
     borderRadius: 18,
     borderWidth: 1,
@@ -248,55 +216,58 @@ const styles = StyleSheet.create({
   },
   todayOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'transparent',
   },
   todaySafeArea: {
-    width: '80%',
+    width: '92%',
     minHeight: 126,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     justifyContent: 'space-between',
-    marginLeft: 8,
+    marginLeft: 0,
   },
   todayLabel: {
-    color: '#4E5560',
-    fontSize: 11,
-    fontWeight: '700',
+    color: '#1E2836',
+    fontSize: 12,
+    fontWeight: '800',
     marginBottom: 4,
     marginTop: 4,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     fontFamily: TODAY_LABEL_FONT,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   todayText: {
-    color: '#252A31',
-    fontSize: 12.5,
+    color: '#1A2433',
+    fontSize: 12,
     lineHeight: 16.5,
-    fontWeight: '700',
-    textAlign: 'left',
+    fontWeight: '800',
+    textAlign: 'center',
     fontFamily: TODAY_BODY_FONT,
   },
   todayCenter: {
     flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: 10,
     marginTop: 2,
   },
   todayBottom: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 5,
   },
   todayMeta: {
-    color: '#5C636E',
-    fontSize: 10.8,
-    fontWeight: '600',
+    color: '#2A3648',
+    fontSize: 11,
+    fontWeight: '700',
     fontFamily: TODAY_META_FONT,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   quickRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 14,
+  },
+  stickySearch: {
+    paddingTop: 4,
   },
   quickCard: {
     flex: 1,

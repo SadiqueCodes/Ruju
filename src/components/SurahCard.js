@@ -1,6 +1,7 @@
 import React from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import { getThemeColors } from '../theme';
+
 const FRAME_BACKGROUNDS = require('../../frames/geminiSlices');
 const CARD_HEIGHT = 96;
 
@@ -16,15 +17,14 @@ export function SurahCard({ surah, onPress, themeMode = 'dark' }) {
     >
       <ImageBackground source={backgroundSource} style={styles.bg} imageStyle={styles.bgImage}>
         <View style={styles.bgShade} />
-        <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.9)', borderColor: 'rgba(255,255,255,0.95)' }]}>
-          <Text style={[styles.badgeText, { color: '#7C4E2D' }]}>{surah.surah_number}</Text>
+        <View style={styles.badgeRail}>
+          <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.9)', borderColor: 'rgba(255,255,255,0.95)' }]}>
+            <Text style={[styles.badgeText, { color: '#7C4E2D' }]}>{surah.surah_number}</Text>
+          </View>
         </View>
         <View style={styles.content}>
           <Text style={styles.title}>{surah.surah_name}</Text>
           <Text style={styles.meta}>{surah.ayah_count} ayahs</Text>
-        </View>
-        <View style={[styles.chevWrap, { backgroundColor: 'rgba(255,255,255,0.88)' }]}>
-          <Text style={[styles.chev, { color: '#8F5F39' }]}>›</Text>
         </View>
       </ImageBackground>
     </Pressable>
@@ -47,17 +47,23 @@ const styles = StyleSheet.create({
     minHeight: CARD_HEIGHT,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
   },
   bgImage: {
     resizeMode: 'cover',
+    transform: [{ scale: 1.12 }],
     borderRadius: 16,
   },
   bgShade: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.12)',
+  },
+  badgeRail: {
+    position: 'absolute',
+    left: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   badge: {
     width: 38,
@@ -72,9 +78,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   content: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 56,
   },
   title: {
     fontWeight: '800',
@@ -94,17 +105,5 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.24)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1.5,
-  },
-  chevWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chev: {
-    fontSize: 19,
-    fontWeight: '800',
-    marginTop: -2,
   },
 });

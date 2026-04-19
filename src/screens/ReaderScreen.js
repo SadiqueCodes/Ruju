@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AyahCard } from '../components/AyahCard';
 import { getThemeColors } from '../theme';
@@ -12,6 +12,7 @@ export function ReaderScreen({ route }) {
   const colors = getThemeColors(themeMode);
   const isLight = themeMode === 'light';
   const [query, setQuery] = useState('');
+  const [searchMode, setSearchMode] = useState('content');
   const listRef = useRef(null);
   const lastHandledJumpKeyRef = useRef('');
   const pendingJumpIndexRef = useRef(-1);
@@ -20,7 +21,14 @@ export function ReaderScreen({ route }) {
   const retryCountRef = useRef(0);
 
   const ayahs = ayahsBySurah[surahNumber] || [];
-  const visibleAyahs = useMemo(() => filterAyahs(ayahs, query), [ayahs, query]);
+  const visibleAyahs = useMemo(() => {
+    const q = query.trim();
+    if (!q) return ayahs;
+    if (searchMode === 'ayah_number') {
+      return ayahs.filter((a) => String(a.ayah_number || '').includes(q));
+    }
+    return filterAyahs(ayahs, q);
+  }, [ayahs, query, searchMode]);
 
   const clearRetryTimer = () => {
     if (retryTimerRef.current) {
@@ -101,10 +109,34 @@ export function ReaderScreen({ route }) {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search inside this surah"
+          placeholder={searchMode === 'ayah_number' ? 'Search by ayah number' : 'Search by content'}
           placeholderTextColor={colors.muted}
           style={[styles.input, { borderColor: colors.border, backgroundColor: isLight ? '#F2F6FF' : '#0E1526', color: colors.text }]}
         />
+        <View style={styles.modeRow}>
+          <Pressable
+            onPress={() => setSearchMode('ayah_number')}
+            style={[
+              styles.modeChip,
+              searchMode === 'ayah_number'
+                ? { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }
+                : { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' },
+            ]}
+          >
+            <Text style={[styles.modeChipText, { color: searchMode === 'ayah_number' ? colors.gold : colors.text }]}>Ayah Number</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setSearchMode('content')}
+            style={[
+              styles.modeChip,
+              searchMode === 'content'
+                ? { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }
+                : { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' },
+            ]}
+          >
+            <Text style={[styles.modeChipText, { color: searchMode === 'content' ? colors.gold : colors.text }]}>Content</Text>
+          </Pressable>
+        </View>
 
         <FlatList
           ref={listRef}
@@ -150,7 +182,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    marginBottom: 10,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 12,
+  },
+  modeChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  modeChipText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   list: {
     gap: 10,

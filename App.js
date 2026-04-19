@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -44,13 +44,32 @@ function HomeStackScreen() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="Surahs" component={SurahListScreen} options={{ title: 'Ruju Quran' }} />
+      <Stack.Screen
+        name="Surahs"
+        component={SurahListScreen}
+        options={{
+          headerTitle: () => (
+            <View style={{ width: 240, height: 54, justifyContent: 'center', alignItems: 'flex-start', overflow: 'hidden' }}>
+              <Image
+                source={require('./svgs/Untitled_design__3_-removebg-preview.png')}
+                style={{ width: 400, height: 134, marginLeft: -138 }}
+                resizeMode="contain"
+              />
+            </View>
+          ),
+          headerTitleAlign: 'left',
+          headerTitleContainerStyle: {
+            left: 0,
+            right: 0,
+          },
+        }}
+      />
       <Stack.Screen
         name="Reader"
         component={ReaderScreen}
         options={({ route }) => ({ title: route.params?.surahName || 'Reader' })}
       />
-      <Stack.Screen name="Tasbeeh" component={TasbeehScreen} options={{ title: 'Digital Tasbeeh' }} />
+      <Stack.Screen name="Tasbeeh" component={TasbeehScreen} options={{ title: 'Tasbeeh' }} />
     </Stack.Navigator>
   );
 }
@@ -66,7 +85,26 @@ function SettingsStackScreen() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="SettingsHome" component={SettingsScreen} options={{ title: 'Ruju Quran' }} />
+      <Stack.Screen
+        name="SettingsHome"
+        component={SettingsScreen}
+        options={{
+          headerTitle: () => (
+            <View style={{ width: 240, height: 54, justifyContent: 'center', alignItems: 'flex-start', overflow: 'hidden' }}>
+              <Image
+                source={require('./svgs/Untitled_design__3_-removebg-preview.png')}
+                style={{ width: 400, height: 134, marginLeft: -138 }}
+                resizeMode="contain"
+              />
+            </View>
+          ),
+          headerTitleAlign: 'left',
+          headerTitleContainerStyle: {
+            left: 0,
+            right: 0,
+          },
+        }}
+      />
       <Stack.Screen name="MyProfile" component={MyProfileScreen} options={{ title: 'My Profile' }} />
       <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
     </Stack.Navigator>
