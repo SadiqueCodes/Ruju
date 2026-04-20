@@ -1,8 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../theme';
+import { Animated, StyleSheet, Text, View, Image } from 'react-native';
+import { getThemeColors } from '../theme';
+import { useAppState } from '../state/AppState';
 
 export function SplashScreen() {
+  const { themeMode } = useAppState();
+  const colors = getThemeColors(themeMode);
+  
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;
 
@@ -14,13 +18,29 @@ export function SplashScreen() {
   }, [fade, scale]);
 
   return (
-    <View style={styles.root}>
-      <View style={styles.blobA} />
-      <View style={styles.blobB} />
-      <Animated.View style={[styles.center, { opacity: fade, transform: [{ scale }] }]}>
-        <Text style={styles.kicker}>Ruju</Text>
-        <Text style={styles.title}>Quran</Text>
-        <Text style={styles.sub}>Read. Reflect. Return.</Text>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <View style={[styles.blobA, { backgroundColor: colors.blobA }]} />
+      <View style={[styles.blobB, { backgroundColor: colors.blobB }]} />
+
+      <Animated.View style={[styles.center, { opacity: scale }]}>
+        <Image
+          source={require('../../frames/Gemini_Generated_Image___1_-removebg-preview.png')}
+          style={styles.appLogo}
+          resizeMode="contain"
+        />
+
+        <Image
+          source={require('../../svgs/Untitled_design__3_-removebg-preview.png')}
+          style={[
+            styles.logo,
+            {
+              tintColor: themeMode === 'dark' ? '#FFF7E8' : undefined,
+              opacity: themeMode === 'dark' ? 0.96 : 1,
+            },
+          ]}
+          resizeMode="contain"
+        />
+
       </Animated.View>
     </View>
   );
@@ -29,16 +49,15 @@ export function SplashScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   blobA: {
     position: 'absolute',
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: COLORS.blobA,
     opacity: 0.22,
     top: -120,
     right: -70,
@@ -48,30 +67,22 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: COLORS.blobB,
     opacity: 0.18,
     bottom: -90,
     left: -80,
   },
   center: {
     alignItems: 'center',
+    gap: 0,
   },
-  kicker: {
-    color: COLORS.gold,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontWeight: '800',
-    fontSize: 14,
+  appLogo: {
+    width: 142,
+    height: 142,
+    marginBottom: -20,
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 46,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  sub: {
-    color: COLORS.muted,
-    marginTop: 6,
-    fontSize: 14,
+  logo: {
+    width: 330,
+    height: 110,
+    marginTop: -20,
   },
 });

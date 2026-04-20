@@ -309,6 +309,7 @@ export function SettingsScreen({ navigation }) {
           </Pressable>
         </Pressable>
       </Modal>
+
     </SafeAreaView>
   );
 }

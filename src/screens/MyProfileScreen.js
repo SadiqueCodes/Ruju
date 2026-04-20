@@ -9,7 +9,7 @@ import FemaleMuslimSvg from '../../svgs/female-muslim.svg';
 function makeStyles(colors, isLight) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bg },
-    container: { flex: 1, paddingHorizontal: 14, paddingTop: 8 },
+    container: { flex: 1, paddingHorizontal: 14, paddingTop: 1 },
     card: {
       borderWidth: 1,
       borderColor: colors.border,
