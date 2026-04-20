@@ -110,7 +110,13 @@ function makeStyles(colors, isLight) {
 }
 
 export function SettingsScreen({ navigation }) {
-  const { clearBookmarks, clearLastRead, clearProfileSetup, themeMode, toggleThemeMode } = useAppState();
+  const {
+    clearBookmarks,
+    clearLastRead,
+    clearProfileSetup,
+    themeMode,
+    toggleThemeMode,
+  } = useAppState();
   const [showClearBookmarksModal, setShowClearBookmarksModal] = useState(false);
   const [showResetProfileModal, setShowResetProfileModal] = useState(false);
   const colors = getThemeColors(themeMode);
@@ -128,7 +134,7 @@ export function SettingsScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.container}
         contentInsetAdjustmentBehavior="never"

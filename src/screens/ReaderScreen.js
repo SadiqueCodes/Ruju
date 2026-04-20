@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { AyahCard } from '../components/AyahCard';
 import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
@@ -12,20 +13,31 @@ export function ReaderScreen({ route }) {
   const colors = getThemeColors(themeMode);
   const isLight = themeMode === 'light';
   const [query, setQuery] = useState('');
-  const [searchMode, setSearchMode] = useState('content');
+  const [searchMode, setSearchMode] = useState('ayah_number');
+  const [showModeMenu, setShowModeMenu] = useState(false);
   const listRef = useRef(null);
   const lastHandledJumpKeyRef = useRef('');
-  const pendingJumpIndexRef = useRef(-1);
-  const pendingJumpAyahRef = useRef(null);
+  const jumpTargetIndexRef = useRef(-1);
+  const jumpTargetAyahRef = useRef(null);
   const retryTimerRef = useRef(null);
-  const retryCountRef = useRef(0);
+  const jumpRetryCountRef = useRef(0);
+  const ESTIMATED_AYAH_CARD_HEIGHT = 260;
 
   const ayahs = ayahsBySurah[surahNumber] || [];
+  const ayahJumpNumber = useMemo(() => {
+    if (searchMode !== 'ayah_number') return null;
+    const q = query.trim();
+    if (!q) return null;
+    const n = Number(q);
+    return Number.isNaN(n) ? null : n;
+  }, [query, searchMode]);
+
   const visibleAyahs = useMemo(() => {
     const q = query.trim();
     if (!q) return ayahs;
     if (searchMode === 'ayah_number') {
-      return ayahs.filter((a) => String(a.ayah_number || '').includes(q));
+      // Keep full list visible for number search; we jump to matching ayah via effect.
+      return ayahs;
     }
     return filterAyahs(ayahs, q);
   }, [ayahs, query, searchMode]);
@@ -37,20 +49,41 @@ export function ReaderScreen({ route }) {
     }
   };
 
-  const retryJump = (index, animated = true) => {
+  const retryJump = (index, animated = false) => {
     if (index < 0) return;
     listRef.current?.scrollToIndex?.({ index, animated, viewPosition: 0 });
   };
 
   const scheduleRetry = (index) => {
     if (index < 0) return;
-    if (retryCountRef.current >= 8) return;
+    if (jumpRetryCountRef.current >= 6) return;
     clearRetryTimer();
-    retryCountRef.current += 1;
-    const waitMs = 180 + retryCountRef.current * 120;
+    jumpRetryCountRef.current += 1;
+    const waitMs = 130 + jumpRetryCountRef.current * 120;
     retryTimerRef.current = setTimeout(() => {
-      retryJump(index, retryCountRef.current > 1);
+      retryJump(index, false);
+      scheduleRetry(index);
     }, waitMs);
+  };
+
+  const jumpToAyah = (ayahNumber) => {
+    if (!ayahNumber) return;
+    const targetIndex = ayahs.findIndex((a) => Number(a.ayah_number) === Number(ayahNumber));
+    if (targetIndex < 0) return;
+
+    jumpTargetIndexRef.current = targetIndex;
+    jumpTargetAyahRef.current = Number(ayahNumber);
+    jumpRetryCountRef.current = 0;
+    clearRetryTimer();
+
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset?.({
+        offset: Math.max(0, targetIndex * ESTIMATED_AYAH_CARD_HEIGHT),
+        animated: false,
+      });
+      retryJump(targetIndex, false);
+      scheduleRetry(targetIndex);
+    });
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
@@ -58,13 +91,14 @@ export function ReaderScreen({ route }) {
     const first = viewableItems[0]?.item;
     if (first) setLastRead(first);
 
-    const targetAyah = pendingJumpAyahRef.current;
+    const targetAyah = jumpTargetAyahRef.current;
     if (!targetAyah) return;
 
     const hit = viewableItems.some((v) => v?.item?.ayah_number === targetAyah);
     if (hit) {
-      pendingJumpAyahRef.current = null;
-      retryCountRef.current = 0;
+      jumpTargetAyahRef.current = null;
+      jumpTargetIndexRef.current = -1;
+      jumpRetryCountRef.current = 0;
       clearRetryTimer();
     }
   }).current;
@@ -85,57 +119,59 @@ export function ReaderScreen({ route }) {
 
     setLastRead(current);
     lastHandledJumpKeyRef.current = jumpKey;
-
-    const targetIndex = ayahs.findIndex((a) => a.ayah_number === initialAyah);
-    if (targetIndex < 0) return;
-    pendingJumpIndexRef.current = targetIndex;
-    pendingJumpAyahRef.current = initialAyah;
-    retryCountRef.current = 0;
-    clearRetryTimer();
-
-    requestAnimationFrame(() => {
-      retryJump(targetIndex, true);
-      scheduleRetry(targetIndex);
-    });
+    jumpToAyah(initialAyah);
   }, [ayahs, initialAyah, jumpAt, query, setLastRead, surahNumber]);
 
   useEffect(() => {
     return () => clearRetryTimer();
   }, []);
 
+  useEffect(() => {
+    if (searchMode !== 'ayah_number') return;
+    if (!ayahJumpNumber) return;
+    jumpToAyah(ayahJumpNumber);
+  }, [ayahJumpNumber, ayahs, searchMode]);
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['bottom']}>
       <View style={styles.container}>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={searchMode === 'ayah_number' ? 'Search by ayah number' : 'Search by content'}
-          placeholderTextColor={colors.muted}
-          style={[styles.input, { borderColor: colors.border, backgroundColor: isLight ? '#F2F6FF' : '#0E1526', color: colors.text }]}
-        />
-        <View style={styles.modeRow}>
+        <View style={[styles.searchWrap, { borderColor: colors.border, backgroundColor: isLight ? '#F2F6FF' : '#0E1526' }]}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={searchMode === 'ayah_number' ? 'Search ayah number' : 'Search content'}
+            placeholderTextColor={colors.muted}
+            style={[styles.input, { color: colors.text }]}
+          />
           <Pressable
-            onPress={() => setSearchMode('ayah_number')}
-            style={[
-              styles.modeChip,
-              searchMode === 'ayah_number'
-                ? { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }
-                : { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' },
-            ]}
+            style={styles.filterBtn}
+            onPress={() => setShowModeMenu((p) => !p)}
           >
-            <Text style={[styles.modeChipText, { color: searchMode === 'ayah_number' ? colors.gold : colors.text }]}>Ayah Number</Text>
+            <Ionicons name="options-outline" size={17} color={colors.text} />
           </Pressable>
-          <Pressable
-            onPress={() => setSearchMode('content')}
-            style={[
-              styles.modeChip,
-              searchMode === 'content'
-                ? { borderColor: colors.gold, backgroundColor: isLight ? '#FFF3DA' : '#241D12' }
-                : { borderColor: colors.border, backgroundColor: isLight ? '#EEF3FF' : '#0E1526' },
-            ]}
-          >
-            <Text style={[styles.modeChipText, { color: searchMode === 'content' ? colors.gold : colors.text }]}>Content</Text>
-          </Pressable>
+
+          {showModeMenu ? (
+            <View style={[styles.modeMenu, { borderColor: colors.border, backgroundColor: isLight ? '#FFFFFF' : '#10192B' }]}>
+              <Pressable
+                style={[styles.modeMenuItem, searchMode === 'ayah_number' && { backgroundColor: isLight ? '#FFF3DA' : '#241D12' }]}
+                onPress={() => {
+                  setSearchMode('ayah_number');
+                  setShowModeMenu(false);
+                }}
+              >
+                <Text style={[styles.modeMenuText, { color: searchMode === 'ayah_number' ? colors.gold : colors.text }]}>Ayah Number</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modeMenuItem, searchMode === 'content' && { backgroundColor: isLight ? '#FFF3DA' : '#241D12' }]}
+                onPress={() => {
+                  setSearchMode('content');
+                  setShowModeMenu(false);
+                }}
+              >
+                <Text style={[styles.modeMenuText, { color: searchMode === 'content' ? colors.gold : colors.text }]}>Content</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
 
         <FlatList
@@ -145,12 +181,17 @@ export function ReaderScreen({ route }) {
           contentContainerStyle={styles.list}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
-          onScrollToIndexFailed={({ index, highestMeasuredFrameIndex }) => {
+          onScrollToIndexFailed={({ index, highestMeasuredFrameIndex, averageItemLength }) => {
+            const retryIndex = jumpTargetIndexRef.current >= 0 ? jumpTargetIndexRef.current : index;
             const safeIndex = Math.max(0, highestMeasuredFrameIndex || 0);
-            if (safeIndex > 0) {
+            if (safeIndex > 0 && safeIndex < retryIndex) {
               listRef.current?.scrollToIndex?.({ index: safeIndex, animated: false });
             }
-            const retryIndex = pendingJumpIndexRef.current >= 0 ? pendingJumpIndexRef.current : index;
+            const approxOffset = Math.max(0, (averageItemLength || 0) * retryIndex);
+            if (approxOffset > 0) {
+              listRef.current?.scrollToOffset?.({ offset: approxOffset, animated: false });
+            }
+            setTimeout(() => retryJump(retryIndex, false), 120);
             scheduleRetry(retryIndex);
           }}
           renderItem={({ item }) => (
@@ -178,24 +219,41 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 14,
+    flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 10,
   },
-  modeRow: {
+  searchWrap: {
+    position: 'relative',
     flexDirection: 'row',
-    gap: 8,
     marginBottom: 12,
-  },
-  modeChip: {
+    alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 999,
-    paddingVertical: 7,
+    borderRadius: 14,
+    paddingRight: 4,
+  },
+  filterBtn: {
+    borderRadius: 10,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeMenu: {
+    position: 'absolute',
+    right: 0,
+    top: 44,
+    width: 148,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 4,
+    zIndex: 20,
+  },
+  modeMenuItem: {
+    paddingVertical: 9,
     paddingHorizontal: 12,
   },
-  modeChipText: {
+  modeMenuText: {
     fontSize: 12,
     fontWeight: '700',
   },

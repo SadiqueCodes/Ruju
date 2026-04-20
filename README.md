@@ -129,9 +129,12 @@ supabase/ayahs_admin.sql
 
 This creates:
 - `public.ayahs` table (unique by `surah_number + ayah_number`)
+- `public.surahs` table (one row per surah name, used as app source of truth for names)
 - indexes + `updated_at` trigger
 - read policy for app users
 - write policies for authenticated admin users
+
+When the SQL runs, it also backfills `public.surahs` from existing `public.ayahs` names.
 
 ## Admin Panel (Web)
 

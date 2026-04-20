@@ -18,6 +18,80 @@ create table if not exists public.ayahs (
 create index if not exists idx_ayahs_surah_ayah on public.ayahs (surah_number, ayah_number);
 create index if not exists idx_ayahs_juz on public.ayahs (juz_number);
 
+create table if not exists public.surahs (
+  surah_number integer primary key check (surah_number > 0 and surah_number <= 114),
+  surah_name text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.set_surahs_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_surahs_updated_at on public.surahs;
+create trigger trg_surahs_updated_at
+before update on public.surahs
+for each row execute function public.set_surahs_updated_at();
+
+alter table public.surahs enable row level security;
+
+drop policy if exists "surahs_select_public" on public.surahs;
+create policy "surahs_select_public"
+on public.surahs
+for select
+using (true);
+
+drop policy if exists "surahs_insert_auth" on public.surahs;
+create policy "surahs_insert_auth"
+on public.surahs
+for insert
+to authenticated
+with check (true);
+
+drop policy if exists "surahs_update_auth" on public.surahs;
+create policy "surahs_update_auth"
+on public.surahs
+for update
+to authenticated
+using (true)
+with check (true);
+
+drop policy if exists "surahs_delete_auth" on public.surahs;
+create policy "surahs_delete_auth"
+on public.surahs
+for delete
+to authenticated
+using (true);
+
+with ranked_surah_names as (
+  select
+    surah_number,
+    surah_name,
+    count(*) as freq,
+    row_number() over (
+      partition by surah_number
+      order by count(*) desc, char_length(surah_name) desc, surah_name asc
+    ) as rn
+  from public.ayahs
+  where nullif(trim(surah_name), '') is not null
+  group by surah_number, surah_name
+)
+insert into public.surahs (surah_number, surah_name)
+select surah_number, surah_name
+from ranked_surah_names
+where rn = 1
+on conflict (surah_number)
+do update
+set surah_name = excluded.surah_name,
+    updated_at = now();
+
 create or replace function public.set_ayahs_updated_at()
 returns trigger
 language plpgsql

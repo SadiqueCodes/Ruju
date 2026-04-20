@@ -683,7 +683,7 @@ export function FeedScreen() {
 
   if (!isSupabaseConfigured) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
         <View style={styles.container}>
           <Text style={[styles.heading, { color: colors.text }]}>Feed</Text>
           <View style={[styles.warnBox, { borderColor: colors.gold, backgroundColor: themeMode === 'light' ? '#FFF4DB' : '#2A1F12' }]}>
@@ -696,7 +696,7 @@ export function FeedScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={[styles.heading, { color: colors.text }]}>Feed</Text>
@@ -726,6 +726,7 @@ export function FeedScreen() {
             data={posts}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={loading && posts.length > 0} onRefresh={loadFeed} tintColor={colors.gold} />}
             ListEmptyComponent={loading ? <ActivityIndicator color={colors.gold} /> : <Text style={[styles.empty, { color: colors.muted }]}>No posts yet.</Text>}
             renderItem={({ item }) => {

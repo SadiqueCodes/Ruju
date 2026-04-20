@@ -64,6 +64,7 @@ const NAV_ITEMS = [
   { key: 'bulk', label: 'Bulk Paste' },
   { key: 'json', label: 'JSON Import' },
   { key: 'manual', label: 'Manual Entry' },
+  { key: 'surah_name', label: 'Change Surah Name' },
   { key: 'history', label: 'History' },
   { key: 'account', label: 'Account' },
 ];
@@ -92,6 +93,7 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [historyStatus, setHistoryStatus] = useState({ text: '', kind: '' });
   const [manualStatus, setManualStatus] = useState({ text: 'Ready', kind: '' });
+  const [renameStatus, setRenameStatus] = useState({ text: 'Ready', kind: '' });
   const [manual, setManual] = useState({
     surah_number: '',
     surah_name: '',
@@ -101,6 +103,10 @@ export default function App() {
     translation: '',
     tafseer: '',
     source_post_id: '',
+  });
+  const [renameForm, setRenameForm] = useState({
+    surah_number: '',
+    surah_name: '',
   });
 
   const previewRows = useMemo(() => parsedRows.slice(0, 40), [parsedRows]);
@@ -226,6 +232,61 @@ export default function App() {
     await refreshHistory();
   }
 
+  async function upsertSurahNames(rows) {
+    const bySurah = new Map();
+    for (const row of rows || []) {
+      if (!Number.isInteger(row?.surah_number)) continue;
+      const name = cleanContent(row.surah_name || '');
+      if (!name) continue;
+      bySurah.set(row.surah_number, { surah_number: row.surah_number, surah_name: name });
+    }
+
+    const surahRows = Array.from(bySurah.values());
+    if (!surahRows.length) return { error: null, count: 0 };
+
+    const { error } = await supabase.from('surahs').upsert(surahRows, { onConflict: 'surah_number' });
+    return { error, count: surahRows.length };
+  }
+
+  async function changeSurahNameOnly() {
+    if (!ensureSignedIn(setRenameStatus)) return;
+    const surahNumber = Number(renameForm.surah_number);
+    const surahName = cleanContent(renameForm.surah_name);
+    if (!Number.isInteger(surahNumber) || surahNumber <= 0) {
+      setRenameStatus({ text: 'Valid Surah number is required', kind: 'err' });
+      return;
+    }
+    if (!surahName) {
+      setRenameStatus({ text: 'New Surah name is required', kind: 'err' });
+      return;
+    }
+
+    const { error: surahError } = await supabase
+      .from('surahs')
+      .upsert([{ surah_number: surahNumber, surah_name: surahName }], { onConflict: 'surah_number' });
+
+    if (surahError) {
+      setRenameStatus({ text: `Rename failed: ${surahError.message}`, kind: 'err' });
+      return;
+    }
+
+    // Keep ayahs table aligned when rows exist, but surahs table is now the source of truth.
+    const { error: ayahError, count: affectedRows } = await supabase
+      .from('ayahs')
+      .update({ surah_name: surahName })
+      .eq('surah_number', surahNumber)
+      .select('surah_number', { count: 'exact', head: true });
+
+    if (ayahError) {
+      setRenameStatus({ text: `Surah updated, ayah sync warning: ${ayahError.message}`, kind: 'warn' });
+    } else {
+      setRenameStatus({ text: `Updated Surah ${surahNumber}. Ayah rows changed: ${affectedRows || 0}`, kind: 'ok' });
+    }
+
+    await logUpload(supabase, 'surah_name_change', Number(affectedRows) || 0, `surah_number=${surahNumber}, surah_name=${surahName}`);
+    await refreshHistory();
+  }
+
   async function upsertRows(rows, setStatus, sourceType, options = {}) {
     if (!supabase) {
       setStatus({ text: 'Connect first', kind: 'err' });
@@ -273,6 +334,11 @@ export default function App() {
     if (error) {
       setStatus({ text: `Upsert failed: ${error.message}`, kind: 'err' });
       return;
+    }
+
+    const { error: surahError } = await upsertSurahNames(mergedRows);
+    if (surahError) {
+      setStatus({ text: `Ayahs uploaded but surahs update failed: ${surahError.message}`, kind: 'warn' });
     }
 
     const sourcePostId = Number(options?.sourcePostId) || null;
@@ -476,6 +542,42 @@ export default function App() {
               }
             >
               {isBusy('manual_upsert') ? 'Saving...' : 'Upsert Manual Ayah'}
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    if (activePage === 'surah_name') {
+      return (
+        <>
+          <div className="head"><h2>Change Surah Name</h2><span className={`pill ${renameStatus.kind}`}>{renameStatus.text}</span></div>
+          <p className="sub">Updates the dedicated surahs table so app names reflect instantly, even when ayah rows are missing.</p>
+          <div className="grid g2">
+            <label className="field">
+              <span>Surah Number</span>
+              <input
+                value={renameForm.surah_number}
+                onChange={(e) => setRenameForm((p) => ({ ...p, surah_number: e.target.value }))}
+                placeholder="e.g. 5"
+              />
+            </label>
+            <label className="field">
+              <span>New Surah Name</span>
+              <input
+                value={renameForm.surah_name}
+                onChange={(e) => setRenameForm((p) => ({ ...p, surah_name: e.target.value }))}
+                placeholder="e.g. Al-Ma'idah"
+              />
+            </label>
+          </div>
+          <div className="row">
+            <button
+              className="btn gold"
+              disabled={isBusy('rename_surah')}
+              onClick={() => runWithLoading('rename_surah', changeSurahNameOnly)}
+            >
+              {isBusy('rename_surah') ? 'Updating...' : 'Update Surah Name'}
             </button>
           </div>
         </>

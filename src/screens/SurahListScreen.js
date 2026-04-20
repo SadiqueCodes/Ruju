@@ -19,7 +19,7 @@ export function SurahListScreen({ navigation }) {
   const todaysAyah = useMemo(() => {
     const shortAyah = (row) => {
       const text = String(row.translation || row.tafseer || '').replace(/\s+/g, ' ').trim();
-      return text.length >= 20 && text.length <= 180;
+      return text.length >= 20 && text.length <= 154;
     };
     const rows = Object.values(ayahsBySurah || {})
       .flat()
@@ -141,7 +141,7 @@ export function SurahListScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: isLight ? '#FFFFFF' : colors.bg }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: isLight ? '#FFFFFF' : colors.bg }]} edges={['left', 'right']}>
       {!isLight ? <View style={[styles.bgBlobA, { backgroundColor: colors.blobA }]} /> : null}
       {!isLight ? <View style={[styles.bgBlobB, { backgroundColor: colors.blobB }]} /> : null}
 

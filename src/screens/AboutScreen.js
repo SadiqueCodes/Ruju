@@ -29,7 +29,7 @@ export function AboutScreen() {
   const styles = useMemo(() => makeStyles(colors, isLight), [colors, isLight]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.title}>Ruju Quran</Text>

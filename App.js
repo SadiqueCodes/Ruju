@@ -52,7 +52,13 @@ function HomeStackScreen() {
             <View style={{ width: 240, height: 54, justifyContent: 'center', alignItems: 'flex-start', overflow: 'hidden' }}>
               <Image
                 source={require('./svgs/Untitled_design__3_-removebg-preview.png')}
-                style={{ width: 400, height: 134, marginLeft: -138 }}
+                style={{
+                  width: 400,
+                  height: 134,
+                  marginLeft: -138,
+                  tintColor: themeMode === 'dark' ? '#FFF7E8' : undefined,
+                  opacity: themeMode === 'dark' ? 0.96 : 1,
+                }}
                 resizeMode="contain"
               />
             </View>
@@ -93,7 +99,13 @@ function SettingsStackScreen() {
             <View style={{ width: 240, height: 54, justifyContent: 'center', alignItems: 'flex-start', overflow: 'hidden' }}>
               <Image
                 source={require('./svgs/Untitled_design__3_-removebg-preview.png')}
-                style={{ width: 400, height: 134, marginLeft: -138 }}
+                style={{
+                  width: 400,
+                  height: 134,
+                  marginLeft: -138,
+                  tintColor: themeMode === 'dark' ? '#FFF7E8' : undefined,
+                  opacity: themeMode === 'dark' ? 0.96 : 1,
+                }}
                 resizeMode="contain"
               />
             </View>

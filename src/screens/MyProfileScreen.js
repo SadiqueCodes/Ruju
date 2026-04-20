@@ -48,7 +48,7 @@ export function MyProfileScreen() {
   const styles = useMemo(() => makeStyles(colors, isLight), [colors, isLight]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
         <View style={styles.card}>
           <View style={styles.avatar}>

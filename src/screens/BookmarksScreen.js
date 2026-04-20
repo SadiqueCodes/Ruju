@@ -10,7 +10,7 @@ export function BookmarksScreen({ navigation }) {
   const colors = getThemeColors(themeMode);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={['top', 'left', 'right']}>
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <Text style={[styles.heading, { color: colors.text }]}>Bookmarks</Text>
 
@@ -19,6 +19,7 @@ export function BookmarksScreen({ navigation }) {
           keyExtractor={(item) => `${item.surah_number}:${item.ayah_number}`}
           style={{ backgroundColor: colors.bg }}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <AyahCard
               ayah={item}
