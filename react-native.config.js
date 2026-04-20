@@ -3,12 +3,7 @@ module.exports = {
     ios: {},
     android: {
       sourceDir: './android',
-    },
-  },
-  dependency: {
-    platforms: {
-      android: {},
-      ios: {},
+      packageName: 'com.sadique362.rujuquran',
     },
   },
 };

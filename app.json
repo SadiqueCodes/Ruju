@@ -6,11 +6,6 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "plugins": [
-      "expo-asset",
-      "expo-media-library"
-    ],
-    "userInterfaceStyle": "automatic",
     "extra": {
       "supabaseUrl": "",
       "supabaseAnonKey": "",

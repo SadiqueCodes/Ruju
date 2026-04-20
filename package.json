@@ -38,6 +38,8 @@
     "react-native-view-shot": "^4.0.3"
   },
   "devDependencies": {
+    "@react-native-community/cli": "20.0.1",
+    "@react-native-community/cli-platform-android": "20.0.1",
     "babel-preset-expo": "^54.0.10"
   }
 }
