@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AyahCard } from '../components/AyahCard';
+import { SurahIntroductionCard } from '../components/SurahIntroductionCard';
 import { getThemeColors } from '../theme';
 import { useAppState } from '../state/AppState';
 import { filterAyahs } from '../utils/quranData';
 
 export function ReaderScreen({ route }) {
-  const { surahNumber, initialAyah, jumpAt } = route.params || {};
-  const { ayahsBySurah, isBookmarked, toggleBookmark, setLastRead, themeMode } = useAppState();
+  const { surahNumber, surahName, initialAyah, jumpAt } = route.params || {};
+  const { ayahsBySurah, isBookmarked, toggleBookmark, setLastRead, themeMode, surahIntroductions } = useAppState();
   const colors = getThemeColors(themeMode);
   const isLight = themeMode === 'light';
   const [query, setQuery] = useState('');
@@ -20,6 +21,8 @@ export function ReaderScreen({ route }) {
   const retryCountRef = useRef(0);
 
   const ayahs = ayahsBySurah[surahNumber] || [];
+  const intro = surahIntroductions?.[Number(surahNumber)] || null;
+  const introName = intro?.surah_name || surahName || ayahs?.[0]?.surah_name || `Surah ${surahNumber}`;
   const visibleAyahs = useMemo(() => filterAyahs(ayahs, query), [ayahs, query]);
 
   const clearRetryTimer = () => {
@@ -111,6 +114,15 @@ export function ReaderScreen({ route }) {
           data={visibleAyahs}
           keyExtractor={(item) => `${item.surah_number}:${item.ayah_number}`}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            intro?.introduction ? (
+              <SurahIntroductionCard
+                surahNumber={Number(surahNumber)}
+                surahName={introName}
+                introduction={intro.introduction}
+              />
+            ) : null
+          }
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
           onScrollToIndexFailed={({ index, highestMeasuredFrameIndex }) => {

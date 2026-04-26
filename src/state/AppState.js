@@ -73,6 +73,7 @@ export function AppStateProvider({ children }) {
   const [remoteAyahRows, setRemoteAyahRows] = useState([]);
   const [isAyahSyncing, setIsAyahSyncing] = useState(false);
   const [ayahDataSource, setAyahDataSource] = useState('local');
+  const [surahIntroductions, setSurahIntroductions] = useState({});
   const [isHydrated, setIsHydrated] = useState(false);
 
   const effectiveAyahRows = useMemo(
@@ -162,6 +163,7 @@ export function AppStateProvider({ children }) {
   const refreshAyahData = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
       setAyahDataSource('local');
+      setSurahIntroductions({});
       return;
     }
 
@@ -177,6 +179,28 @@ export function AppStateProvider({ children }) {
       setAyahDataSource('supabase');
     } else {
       setAyahDataSource('local');
+    }
+
+    // Optional table for per-surah introductions.
+    const introResp = await supabase
+      .from('surah_introductions')
+      .select('surah_number,surah_name,introduction')
+      .order('surah_number', { ascending: true });
+
+    if (!introResp.error && Array.isArray(introResp.data)) {
+      const next = {};
+      for (const row of introResp.data) {
+        const key = Number(row.surah_number);
+        if (!Number.isInteger(key) || key <= 0) continue;
+        next[key] = {
+          surah_number: key,
+          surah_name: String(row.surah_name || '').trim(),
+          introduction: String(row.introduction || '').trim(),
+        };
+      }
+      setSurahIntroductions(next);
+    } else {
+      setSurahIntroductions({});
     }
     setIsAyahSyncing(false);
   }, []);
@@ -206,6 +230,7 @@ export function AppStateProvider({ children }) {
     profileGender,
     themeMode,
     ayahDataSource,
+    surahIntroductions,
     isAyahSyncing,
     deviceId,
     isHydrated,
