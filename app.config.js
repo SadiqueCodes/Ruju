@@ -6,6 +6,10 @@ module.exports = ({ config }) => {
     ...config,
     extra: {
       ...(config.extra || {}),
+      eas: {
+        ...((config.extra && config.extra.eas) || {}),
+        projectId: '3a98bc3a-7bce-402c-bd4d-b92524fe3bdd',
+      },
       supabaseUrl,
       supabaseAnonKey,
     },

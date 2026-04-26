@@ -31,12 +31,9 @@
     },
     "extra": {
       "supabaseUrl": "",
-      "supabaseAnonKey": "",
-      "eas": {
-        "projectId": "d8f75c65-af5e-4230-8c3c-d4a911613274"
-      }
-    },
-    "owner": "sadique362"
+      "supabaseAnonKey": ""
+      
+    }
   }
 }
 
